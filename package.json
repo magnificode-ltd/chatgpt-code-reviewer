@@ -1,0 +1,24 @@
+{
+  "name": "chatgpt-reviewer-github-action",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start:build": "tsc",
+    "start:bot-check-pr": "node ./dist/bundle.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/magnificode-ltd/chatgpt-reviewer-github-action.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/magnificode-ltd/chatgpt-reviewer-github-action/issues"
+  },
+  "homepage": "https://github.com/magnificode-ltd/chatgpt-reviewer-github-action#readme",
+  "dependencies": {
+    "typescript": "^5.0.4"
+  }
+}

@@ -1,0 +1,20 @@
+# Node.js dependencies
+node_modules/
+
+# Compiled output
+dist/
+*.js
+*.js.map
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Miscellaneous
+.DS_Store
+Thumbs.db
