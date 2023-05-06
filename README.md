@@ -11,8 +11,8 @@ To use this github action, you will need to have a GitHub account and an OpenAI 
      .github/workflows/chatgpt-reviewer-github-action.yml
    ```
 2. Visit https://platform.openai.com/account/api-keys to generate a new OpenAi Api key.
-3. Add new secret with a name OPENAI_API_KEY in https://github.com/{user}/{repository}/settings/secrets/actions. As a value set generated OpenAi Api key from the step 2
-4. Add configuration to this file:
+3. Add new secret with a name `OPENAI_API_KEY` in `https://github.com/{user}/{repository}/settings/secrets/actions`. As a value set generated OpenAi Api key from the step 2
+4. Update `chatgpt-reviewer-github-action.yml` with:
    ```yml
    name: chatgpt-reviewer-github-action
    run-name: chatgpt-reviewer-github-action
