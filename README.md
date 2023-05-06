@@ -1,6 +1,6 @@
 # chatgpt-reviewer-github-action
 
-GitHub action that provides a service for adding review comments to a pull request on GitHub. This service uses the GitHub REST API and the OpenAI API to retrieve information and generate suggestions for review comments.
+GitHub action that provides a service for adding review comments to a pull request on GitHub. This service uses the GitHub REST API and the OpenAI API to generate suggestions for pull request changes.
 
 ### Getting Started
 
