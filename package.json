@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start:build": "tsc",
-    "start:bot-check-pr": "node ./dist/bundle.js",
+    "start:chatgpt-reviewer-github-action": "node ./dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -19,6 +19,13 @@
   },
   "homepage": "https://github.com/magnificode-ltd/chatgpt-reviewer-github-action#readme",
   "dependencies": {
-    "typescript": "^5.0.4"
+    "@actions/core": "^1.10.0",
+    "@actions/github": "^5.1.1",
+    "@octokit/rest": "^19.0.7",
+    "openai": "^3.2.1",
+    "typescript": "5.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.1.0"
   }
 }

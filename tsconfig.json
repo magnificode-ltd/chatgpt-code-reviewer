@@ -1,13 +1,12 @@
 {
   "compilerOptions": {
-    "target": "ES6",
-    "module": "amd",
-    "lib": ["dom", "esnext"],
-    "sourceMap": true,
-    "outFile": "./dist/bundle.js",
+    "target": "es6",
+    "module": "commonjs",
+    "outDir": "./dist",
     "strict": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "lib": ["es2015", "dom"]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "**/*.spec.ts"]
+  "include": ["src"],
+  "exclude": ["node_modules"]
 }
