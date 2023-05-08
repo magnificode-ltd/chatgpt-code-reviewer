@@ -138,7 +138,7 @@ class CommentOnPullRequestService {
         pull_number: pullNumber,
         line: firstChangedLineFromThePatch,
         path: file.filename,
-        body: openAiSuggestions,
+        body: `[ChatGPTReviewer]\n${openAiSuggestions}`,
         commit_id: commitsList[commitsList.length - 1].sha,
       });
     }
