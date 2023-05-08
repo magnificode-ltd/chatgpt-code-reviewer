@@ -39,6 +39,12 @@ To use this github action, you will need to have a GitHub account and an OpenAI 
          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
    ```
 
+### About
+
+This repository was created & is maintained by MagnifiCode. We provide software development services. Feel free to contact us on [magnificode.net](https://magnificode.net/)
+
+[<img src="docs/images/logo.png" width="250" />](https://magnificode.net/)
+
 ### Dependencies
 
 - @actions/github: A GitHub Actions toolkit for interacting with the GitHub REST API.
