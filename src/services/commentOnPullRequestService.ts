@@ -96,6 +96,7 @@ class CommentOnPullRequestService {
 
     const lineHeaderRegExp = /^@@ -\d+,\d+ \+(\d+),(\d+) @@/;
     const lines = patch.split('\n');
+    // TODO If we have no matching lines this will crash. if this happens we should skip the file as well. (in other words - if lines = [] -> lines[0] will crash. handle that)
     const lineHeaderMatch = lines[0].match(lineHeaderRegExp);
 
     let lineNumber = 1;
