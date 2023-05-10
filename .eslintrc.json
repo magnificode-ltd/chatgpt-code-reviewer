@@ -2,5 +2,10 @@
   "extends": ["airbnb-base", "airbnb-typescript/base"],
   "parserOptions": {
     "project": "./tsconfig.json"
+  },
+  "rules": {
+    "object-curly-newline": "off",
+    "max-len": "off",
+    "operator-linebreak": "off"
   }
 }
