@@ -1,0 +1,11 @@
+name: chatgpt-reviewer-github-action
+description: GitHub action that provides a service for adding review comments to a pull request on GitHub
+author: MagnifiCode
+inputs:
+  model:
+    description: 'OpenAI model'
+    default: 'gpt-3.5-turbo'
+    required: false
+runs:
+  using: node16
+  main: dist/index.js
