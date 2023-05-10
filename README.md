@@ -25,14 +25,16 @@ To use this github action, you will need to have a GitHub account and an OpenAI 
    run-name: chatgpt-reviewer-github-action
    on: [pull_request]
    jobs:
-    chatgpt-reviewer-github-action:
-      runs-on: ubuntu-latest
-      steps:
-        - name: ChatGPT Review
-          uses: magnificode-ltd/chatgpt-reviewer-github-action@v0.0.3
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+     chatgpt-reviewer-github-action:
+       runs-on: ubuntu-latest
+       steps:
+         - name: ChatGPT Review
+           uses: magnificode-ltd/chatgpt-reviewer-github-action@v0.0.5
+           with:
+             model: gpt-3.5-turbo
+           env:
+             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+             OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
    ```
 
 ### About
