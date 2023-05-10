@@ -1,11 +1,6 @@
 # Node.js dependencies
 node_modules/
 
-# Compiled output
-dist/
-*.js
-*.js.map
-
 # TypeScript cache
 *.tsbuildinfo
 
