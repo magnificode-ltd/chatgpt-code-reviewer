@@ -16,27 +16,16 @@ To use this github action, you will need to have a GitHub account and an OpenAI 
    ```yml
    name: chatgpt-reviewer-github-action
    run-name: chatgpt-reviewer-github-action
-   on:
-     pull_request:
-       types: [opened, synchronize]
+   on: [pull_request]
    jobs:
-     chatgpt-reviewer-github-action:
-       runs-on: ubuntu-latest
-       steps:
-         - name: Checkout repository
-           uses: actions/checkout@v3
-           with:
-             repository: magnificode-ltd/chatgpt-reviewer-github-action
-             ref: main
-         - name: Install dependencies
-           run: npm i
-         - name: Build
-           run: npm run start:build
-         - name: Run action
-           run: npm run start:chatgpt-reviewer-github-action
-       env:
-         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    chatgpt-reviewer-github-action:
+      runs-on: ubuntu-latest
+      steps:
+        - name: ChatGPT Review
+          uses: magnificode-ltd/chatgpt-reviewer-github-action@v0.0.3
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
    ```
 
 ### About
