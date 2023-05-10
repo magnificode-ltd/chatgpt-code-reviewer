@@ -5,61 +5,63 @@ import promptsConfig, { Prompt } from '../config/promptsConfig';
 
 type Octokit = ReturnType<typeof getOctokit>;
 
-type PR_Data = {
+type PullRequestInfo = {
   owner: string;
   repo: string;
-  pullHead: string;
-  pullBase: string;
+  pullHeadRef: string;
+  pullBaseRef: string;
   pullNumber: number;
 };
 
 class CommentOnPullRequestService {
-  private readonly _octokitApi: Octokit;
-  private readonly _openAiApi: OpenAIApi;
-  private readonly _pullRequest: PR_Data;
+  private readonly octokitApi: Octokit;
+
+  private readonly openAiApi: OpenAIApi;
+
+  private readonly pullRequest: PullRequestInfo;
 
   constructor() {
     if (!process.env.GITHUB_TOKEN) {
-      throw new Error(errorsConfig[ErrorMessage.No_GitHub_Token]);
+      throw new Error(errorsConfig[ErrorMessage.MISSING_GITHUB_TOKEN]);
     }
 
     if (!process.env.OPENAI_API_KEY) {
-      throw new Error(errorsConfig[ErrorMessage.No_OpenAi_Token]);
+      throw new Error(errorsConfig[ErrorMessage.MISSING_OPENAI_TOKEN]);
     }
 
     if (!context.payload.pull_request) {
-      throw new Error(errorsConfig[ErrorMessage.No_PullRequest_In_Context]);
+      throw new Error(errorsConfig[ErrorMessage.NO_PULLREQUEST_IN_CONTEXT]);
     }
 
-    this._octokitApi = getOctokit(process.env.GITHUB_TOKEN);
-    this._openAiApi = new OpenAIApi(new Configuration({ apiKey: process.env.OPENAI_API_KEY }));
+    this.octokitApi = getOctokit(process.env.GITHUB_TOKEN);
+    this.openAiApi = new OpenAIApi(new Configuration({ apiKey: process.env.OPENAI_API_KEY }));
 
-    this._pullRequest = {
+    this.pullRequest = {
       owner: context.repo.owner,
       repo: context.repo.repo,
-      pullHead: context.payload?.pull_request?.head.ref,
-      pullBase: context.payload?.pull_request?.base.ref,
-      pullNumber: context.payload?.pull_request?.number,
+      pullHeadRef: context.payload?.pull_request.head.ref,
+      pullBaseRef: context.payload?.pull_request.base.ref,
+      pullNumber: context.payload?.pull_request.number,
     };
   }
 
   private async getBranchDiff() {
-    const { owner, repo, pullBase, pullHead } = this._pullRequest;
+    const { owner, repo, pullBaseRef, pullHeadRef } = this.pullRequest;
 
-    const { data: branchDiff } = await this._octokitApi.rest.repos.compareCommits({
+    const { data: branchDiff } = await this.octokitApi.rest.repos.compareCommits({
       owner,
       repo,
-      base: pullBase,
-      head: pullHead,
+      base: pullBaseRef,
+      head: pullHeadRef,
     });
 
     return branchDiff;
   }
 
   private async getCommitsList() {
-    const { owner, repo, pullNumber } = this._pullRequest;
+    const { owner, repo, pullNumber } = this.pullRequest;
 
-    const { data: commitsList } = await this._octokitApi.rest.pulls.listCommits({
+    const { data: commitsList } = await this.octokitApi.rest.pulls.listCommits({
       owner,
       repo,
       per_page: 50,
@@ -71,7 +73,7 @@ class CommentOnPullRequestService {
 
   private async getOpenAiSuggestions(patch?: string): Promise<string> {
     if (!patch) {
-      throw new Error(errorsConfig[ErrorMessage.No_Patch_For_OpenAi_Suggestion]);
+      throw new Error(errorsConfig[ErrorMessage.MISSING_PATCH_FOR_OPENAI_SUGGESTION]);
     }
 
     const prompt = `
@@ -79,7 +81,7 @@ class CommentOnPullRequestService {
       Patch:\n\n"${patch}"
     `;
 
-    const openAIResult = await this._openAiApi.createChatCompletion({
+    const openAIResult = await this.openAiApi.createChatCompletion({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: prompt }],
     });
@@ -89,11 +91,7 @@ class CommentOnPullRequestService {
     return responseText;
   }
 
-  private async getFirstChangedLineFromThePatch(patch?: string) {
-    if (!patch) {
-      throw new Error(errorsConfig[ErrorMessage.No_Patch_File]);
-    }
-
+  static async getFirstChangedLineFromPatch(patch: string) {
     const lineHeaderRegExp = /^@@ -\d+,\d+ \+(\d+),(\d+) @@/;
     const lines = patch.split('\n');
     const lineHeaderMatch = lines[0].match(lineHeaderRegExp);
@@ -111,37 +109,30 @@ class CommentOnPullRequestService {
     const { files } = await this.getBranchDiff();
 
     if (!files) {
-      throw new Error(errorsConfig[ErrorMessage.No_Changed_Files_In_PullRequest]);
+      throw new Error(errorsConfig[ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
     }
 
-    for (const file of files) {
-      const isFileStatusMatch: boolean = ['added', 'modified', 'renamed', 'changed'].includes(
-        file.status
-      );
+    files.forEach(async (file) => {
+      if (file.patch) {
+        const openAiSuggestions = await this.getOpenAiSuggestions(file.patch);
+        const commitsList = await this.getCommitsList();
 
-      if (!isFileStatusMatch) {
-        throw new Error(
-          `${errorsConfig[ErrorMessage.Not_Match_Status_Of_Changed_File]} ${file.status}`
-        );
+        const { owner, repo, pullNumber } = this.pullRequest;
+
+        const firstChangedLineFromPatch =
+          await CommentOnPullRequestService.getFirstChangedLineFromPatch(file.patch);
+
+        await this.octokitApi.rest.pulls.createReviewComment({
+          owner,
+          repo,
+          pull_number: pullNumber,
+          line: firstChangedLineFromPatch,
+          path: file.filename,
+          body: `[ChatGPTReviewer]\n${openAiSuggestions}`,
+          commit_id: commitsList[commitsList.length - 1].sha,
+        });
       }
-
-      const openAiSuggestions = await this.getOpenAiSuggestions(file.patch);
-      const commitsList = await this.getCommitsList();
-
-      const { owner, repo, pullNumber } = this._pullRequest;
-
-      const firstChangedLineFromThePatch = await this.getFirstChangedLineFromThePatch(file.patch);
-
-      await this._octokitApi.rest.pulls.createReviewComment({
-        owner,
-        repo,
-        pull_number: pullNumber,
-        line: firstChangedLineFromThePatch,
-        path: file.filename,
-        body: `[ChatGPTReviewer]\n${openAiSuggestions}`,
-        commit_id: commitsList[commitsList.length - 1].sha,
-      });
-    }
+    });
   }
 }
 
