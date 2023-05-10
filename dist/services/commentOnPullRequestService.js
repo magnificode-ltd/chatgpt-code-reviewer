@@ -38,42 +38,42 @@ const errorsConfig_1 = __importStar(require("../config/errorsConfig"));
 const promptsConfig_1 = __importStar(require("../config/promptsConfig"));
 class CommentOnPullRequestService {
     constructor() {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b, _c;
         if (!process.env.GITHUB_TOKEN) {
-            throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.No_GitHub_Token]);
+            throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.MISSING_GITHUB_TOKEN]);
         }
         if (!process.env.OPENAI_API_KEY) {
-            throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.No_OpenAi_Token]);
+            throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.MISSING_OPENAI_TOKEN]);
         }
         if (!github_1.context.payload.pull_request) {
-            throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.No_PullRequest_In_Context]);
+            throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.NO_PULLREQUEST_IN_CONTEXT]);
         }
-        this._octokitApi = (0, github_1.getOctokit)(process.env.GITHUB_TOKEN);
-        this._openAiApi = new openai_1.OpenAIApi(new openai_1.Configuration({ apiKey: process.env.OPENAI_API_KEY }));
-        this._pullRequest = {
+        this.octokitApi = (0, github_1.getOctokit)(process.env.GITHUB_TOKEN);
+        this.openAiApi = new openai_1.OpenAIApi(new openai_1.Configuration({ apiKey: process.env.OPENAI_API_KEY }));
+        this.pullRequest = {
             owner: github_1.context.repo.owner,
             repo: github_1.context.repo.repo,
-            pullHead: (_b = (_a = github_1.context.payload) === null || _a === void 0 ? void 0 : _a.pull_request) === null || _b === void 0 ? void 0 : _b.head.ref,
-            pullBase: (_d = (_c = github_1.context.payload) === null || _c === void 0 ? void 0 : _c.pull_request) === null || _d === void 0 ? void 0 : _d.base.ref,
-            pullNumber: (_f = (_e = github_1.context.payload) === null || _e === void 0 ? void 0 : _e.pull_request) === null || _f === void 0 ? void 0 : _f.number,
+            pullHeadRef: (_a = github_1.context.payload) === null || _a === void 0 ? void 0 : _a.pull_request.head.ref,
+            pullBaseRef: (_b = github_1.context.payload) === null || _b === void 0 ? void 0 : _b.pull_request.base.ref,
+            pullNumber: (_c = github_1.context.payload) === null || _c === void 0 ? void 0 : _c.pull_request.number,
         };
     }
     getBranchDiff() {
         return __awaiter(this, void 0, void 0, function* () {
-            const { owner, repo, pullBase, pullHead } = this._pullRequest;
-            const { data: branchDiff } = yield this._octokitApi.rest.repos.compareCommits({
+            const { owner, repo, pullBaseRef, pullHeadRef } = this.pullRequest;
+            const { data: branchDiff } = yield this.octokitApi.rest.repos.compareCommits({
                 owner,
                 repo,
-                base: pullBase,
-                head: pullHead,
+                base: pullBaseRef,
+                head: pullHeadRef,
             });
             return branchDiff;
         });
     }
     getCommitsList() {
         return __awaiter(this, void 0, void 0, function* () {
-            const { owner, repo, pullNumber } = this._pullRequest;
-            const { data: commitsList } = yield this._octokitApi.rest.pulls.listCommits({
+            const { owner, repo, pullNumber } = this.pullRequest;
+            const { data: commitsList } = yield this.octokitApi.rest.pulls.listCommits({
                 owner,
                 repo,
                 per_page: 50,
@@ -86,13 +86,13 @@ class CommentOnPullRequestService {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             if (!patch) {
-                throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.No_Patch_For_OpenAi_Suggestion]);
+                throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.MISSING_PATCH_FOR_OPENAI_SUGGESTION]);
             }
             const prompt = `
       ${promptsConfig_1.default[promptsConfig_1.Prompt.Check_Patch]}\n
       Patch:\n\n"${patch}"
     `;
-            const openAIResult = yield this._openAiApi.createChatCompletion({
+            const openAIResult = yield this.openAiApi.createChatCompletion({
                 model: 'gpt-3.5-turbo',
                 messages: [{ role: 'user', content: prompt }],
             });
@@ -100,11 +100,8 @@ class CommentOnPullRequestService {
             return responseText;
         });
     }
-    getFirstChangedLineFromThePatch(patch) {
+    static getFirstChangedLineFromPatch(patch) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!patch) {
-                throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.No_Patch_File]);
-            }
             const lineHeaderRegExp = /^@@ -\d+,\d+ \+(\d+),(\d+) @@/;
             const lines = patch.split('\n');
             const lineHeaderMatch = lines[0].match(lineHeaderRegExp);
@@ -119,27 +116,25 @@ class CommentOnPullRequestService {
         return __awaiter(this, void 0, void 0, function* () {
             const { files } = yield this.getBranchDiff();
             if (!files) {
-                throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.No_Changed_Files_In_PullRequest]);
+                throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
             }
-            for (const file of files) {
-                const isFileStatusMatch = ['added', 'modified', 'renamed', 'changed'].includes(file.status);
-                if (!isFileStatusMatch) {
-                    throw new Error(`${errorsConfig_1.default[errorsConfig_1.ErrorMessage.Not_Match_Status_Of_Changed_File]} ${file.status}`);
+            files.forEach((file) => __awaiter(this, void 0, void 0, function* () {
+                if (file.patch) {
+                    const openAiSuggestions = yield this.getOpenAiSuggestions(file.patch);
+                    const commitsList = yield this.getCommitsList();
+                    const { owner, repo, pullNumber } = this.pullRequest;
+                    const firstChangedLineFromPatch = yield CommentOnPullRequestService.getFirstChangedLineFromPatch(file.patch);
+                    yield this.octokitApi.rest.pulls.createReviewComment({
+                        owner,
+                        repo,
+                        pull_number: pullNumber,
+                        line: firstChangedLineFromPatch,
+                        path: file.filename,
+                        body: `[ChatGPTReviewer]\n${openAiSuggestions}`,
+                        commit_id: commitsList[commitsList.length - 1].sha,
+                    });
                 }
-                const openAiSuggestions = yield this.getOpenAiSuggestions(file.patch);
-                const commitsList = yield this.getCommitsList();
-                const { owner, repo, pullNumber } = this._pullRequest;
-                const firstChangedLineFromThePatch = yield this.getFirstChangedLineFromThePatch(file.patch);
-                yield this._octokitApi.rest.pulls.createReviewComment({
-                    owner,
-                    repo,
-                    pull_number: pullNumber,
-                    line: firstChangedLineFromThePatch,
-                    path: file.filename,
-                    body: `[ChatGPTReviewer]\n${openAiSuggestions}`,
-                    commit_id: commitsList[commitsList.length - 1].sha,
-                });
-            }
+            }));
         });
     }
 }
