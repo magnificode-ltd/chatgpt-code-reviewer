@@ -1,7 +1,10 @@
+import { getInput } from '@actions/core';
 import { context, getOctokit } from '@actions/github';
 import { Configuration, OpenAIApi } from 'openai';
 import errorsConfig, { ErrorMessage } from '../config/errorsConfig';
 import promptsConfig, { Prompt } from '../config/promptsConfig';
+
+const OPENAI_MODEL = getInput('model');
 
 type Octokit = ReturnType<typeof getOctokit>;
 
@@ -82,7 +85,7 @@ class CommentOnPullRequestService {
     `;
 
     const openAIResult = await this.openAiApi.createChatCompletion({
-      model: 'gpt-3.5-turbo',
+      model: OPENAI_MODEL,
       messages: [{ role: 'user', content: prompt }],
     });
 
