@@ -32,10 +32,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const core_1 = require("@actions/core");
 const github_1 = require("@actions/github");
 const openai_1 = require("openai");
 const errorsConfig_1 = __importStar(require("../config/errorsConfig"));
 const promptsConfig_1 = __importStar(require("../config/promptsConfig"));
+const OPENAI_MODEL = (0, core_1.getInput)('model');
 class CommentOnPullRequestService {
     constructor() {
         var _a, _b, _c;
@@ -93,7 +95,7 @@ class CommentOnPullRequestService {
       Patch:\n\n"${patch}"
     `;
             const openAIResult = yield this.openAiApi.createChatCompletion({
-                model: 'gpt-3.5-turbo',
+                model: OPENAI_MODEL,
                 messages: [{ role: 'user', content: prompt }],
             });
             const responseText = ((_b = (_a = openAIResult.data.choices.shift()) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || '';
