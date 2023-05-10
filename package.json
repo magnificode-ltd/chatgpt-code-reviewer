@@ -2,10 +2,11 @@
   "name": "chatgpt-reviewer-github-action",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "start:build": "tsc",
     "start:chatgpt-reviewer-github-action": "node ./dist/index.js",
+    "start:package": "ncc build --source-map --minify",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -26,6 +27,7 @@
     "typescript": "5.0.4"
   },
   "devDependencies": {
-    "@types/node": "^20.1.0"
+    "@types/node": "^20.1.0",
+    "@vercel/ncc": "^0.36.1"
   }
 }
