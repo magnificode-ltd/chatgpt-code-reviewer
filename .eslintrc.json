@@ -6,6 +6,11 @@
   "rules": {
     "object-curly-newline": "off",
     "max-len": "off",
-    "operator-linebreak": "off"
+    "operator-linebreak": "off",
+    "@typescript-eslint/lines-between-class-members": [
+      "error",
+      "always",
+      { "exceptAfterSingleLine": true }
+    ]
   }
 }

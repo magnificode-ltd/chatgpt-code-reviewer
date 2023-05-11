@@ -72,7 +72,7 @@ class CommentOnPullRequestService {
     return commitsList;
   }
 
-  private async getOpenAiSuggestions(patch?: string): Promise<string> {
+  private async getOpenAiSuggestions(patch?: string) {
     if (!patch) {
       throw new Error(errorsConfig[ErrorMessage.MISSING_PATCH_FOR_OPENAI_SUGGESTION]);
     }
@@ -87,9 +87,9 @@ class CommentOnPullRequestService {
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const responseText = openAIResult.data.choices.shift()?.message?.content || '';
+    const openAiSuggestion = openAIResult.data.choices.shift()?.message?.content || '';
 
-    return responseText;
+    return openAiSuggestion;
   }
 
   static async getFirstChangedLineFromPatch(patch: string) {
@@ -113,7 +113,7 @@ class CommentOnPullRequestService {
       throw new Error(errorsConfig[ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
     }
 
-    files.forEach(async (file) => {
+    const commentPromises = files.map(async (file) => {
       if (file.patch) {
         const openAiSuggestions = await this.getOpenAiSuggestions(file.patch);
         const commitsList = await this.getCommitsList();
@@ -134,6 +134,8 @@ class CommentOnPullRequestService {
         });
       }
     });
+
+    await Promise.all(commentPromises);
   }
 }
 
