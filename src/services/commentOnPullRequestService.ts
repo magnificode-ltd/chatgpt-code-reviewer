@@ -120,7 +120,7 @@ class CommentOnPullRequestService {
     const firstChangedLineFromPatch =
       await CommentOnPullRequestService.getFirstChangedLineFromPatch(patch);
 
-    await this.octokitApi.rest.pulls.createReviewComment({
+    return this.octokitApi.rest.pulls.createReviewComment({
       owner,
       repo,
       pull_number: pullNumber,
@@ -141,15 +141,18 @@ class CommentOnPullRequestService {
     const commitsList = await this.getCommitsList();
     const lastCommitId = commitsList[commitsList.length - 1].sha;
 
-    const commentPromisesList = files.map(async (file) => {
-      if (file.patch) {
-        await this.createCommentByPatch({
-          patch: file.patch,
-          filename: file.filename,
-          lastCommitId,
-        });
-      }
-    });
+    const commentPromisesList = files
+      .map(async (file) => {
+        if (file.patch) {
+          return this.createCommentByPatch({
+            patch: file.patch,
+            filename: file.filename,
+            lastCommitId,
+          });
+        }
+        return false;
+      })
+      .filter(Boolean);
 
     console.log({ commentPromisesList });
 

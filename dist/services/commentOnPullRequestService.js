@@ -114,29 +114,43 @@ class CommentOnPullRequestService {
             return lineNumber;
         });
     }
+    createCommentByPatch({ patch, filename, lastCommitId, }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const openAiSuggestions = yield this.getOpenAiSuggestions(patch);
+            const { owner, repo, pullNumber } = this.pullRequest;
+            const firstChangedLineFromPatch = yield CommentOnPullRequestService.getFirstChangedLineFromPatch(patch);
+            return this.octokitApi.rest.pulls.createReviewComment({
+                owner,
+                repo,
+                pull_number: pullNumber,
+                line: firstChangedLineFromPatch,
+                path: filename,
+                body: `[ChatGPTReviewer]\n${openAiSuggestions}`,
+                commit_id: lastCommitId,
+            });
+        });
+    }
     addCommentToPr() {
         return __awaiter(this, void 0, void 0, function* () {
             const { files } = yield this.getBranchDiff();
             if (!files) {
                 throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
             }
-            const commentPromisesList = files.map((file) => __awaiter(this, void 0, void 0, function* () {
+            const commitsList = yield this.getCommitsList();
+            const lastCommitId = commitsList[commitsList.length - 1].sha;
+            const commentPromisesList = files
+                .map((file) => __awaiter(this, void 0, void 0, function* () {
                 if (file.patch) {
-                    const openAiSuggestions = yield this.getOpenAiSuggestions(file.patch);
-                    const commitsList = yield this.getCommitsList();
-                    const { owner, repo, pullNumber } = this.pullRequest;
-                    const firstChangedLineFromPatch = yield CommentOnPullRequestService.getFirstChangedLineFromPatch(file.patch);
-                    yield this.octokitApi.rest.pulls.createReviewComment({
-                        owner,
-                        repo,
-                        pull_number: pullNumber,
-                        line: firstChangedLineFromPatch,
-                        path: file.filename,
-                        body: `[ChatGPTReviewer]\n${openAiSuggestions}`,
-                        commit_id: commitsList[commitsList.length - 1].sha,
+                    return this.createCommentByPatch({
+                        patch: file.patch,
+                        filename: file.filename,
+                        lastCommitId,
                     });
                 }
-            }));
+                return false;
+            }))
+                .filter(Boolean);
+            console.log({ commentPromisesList });
             for (const commentPromise of commentPromisesList) {
                 try {
                     yield commentPromise;
