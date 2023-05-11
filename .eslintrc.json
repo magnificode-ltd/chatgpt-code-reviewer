@@ -11,6 +11,9 @@
       "error",
       "always",
       { "exceptAfterSingleLine": true }
-    ]
+    ],
+    "implicit-arrow-linebreak": "off",
+    "no-restricted-syntax": ["error", "WithStatement", "BinaryExpression[operator='in']"],
+    "no-await-in-loop": "off"
   }
 }

@@ -113,7 +113,7 @@ class CommentOnPullRequestService {
       throw new Error(errorsConfig[ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
     }
 
-    const commentPromises = files.map(async (file) => {
+    const commentPromisesList = files.map(async (file) => {
       if (file.patch) {
         const openAiSuggestions = await this.getOpenAiSuggestions(file.patch);
         const commitsList = await this.getCommitsList();
@@ -135,7 +135,13 @@ class CommentOnPullRequestService {
       }
     });
 
-    await Promise.all(commentPromises);
+    for (const commentPromise of commentPromisesList) {
+      try {
+        await commentPromise;
+      } catch (error) {
+        throw new Error(`Error occurred trying to comment the file ${error}`);
+      }
+    }
   }
 }
 
