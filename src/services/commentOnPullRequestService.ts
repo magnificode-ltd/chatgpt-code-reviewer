@@ -154,15 +154,13 @@ class CommentOnPullRequestService {
       })
       .filter(Boolean);
 
-    console.log({ commentPromisesList });
+    let previousPromise = Promise.resolve<any>({});
 
-    for (const commentPromise of commentPromisesList) {
-      try {
-        await commentPromise;
-      } catch (error) {
-        throw new Error(`Error occurred trying to comment the file ${error}`);
-      }
-    }
+    commentPromisesList.forEach((promise) => {
+      previousPromise = previousPromise.then(() => promise).catch((error) => console.error(error));
+    });
+
+    await previousPromise;
   }
 }
 

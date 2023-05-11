@@ -150,15 +150,11 @@ class CommentOnPullRequestService {
                 return false;
             }))
                 .filter(Boolean);
-            console.log({ commentPromisesList });
-            for (const commentPromise of commentPromisesList) {
-                try {
-                    yield commentPromise;
-                }
-                catch (error) {
-                    throw new Error(`Error occurred trying to comment the file ${error}`);
-                }
-            }
+            let previousPromise = Promise.resolve({});
+            commentPromisesList.forEach((promise) => {
+                previousPromise = previousPromise.then(() => promise).catch((error) => console.error(error));
+            });
+            yield previousPromise;
         });
     }
 }
