@@ -116,19 +116,19 @@ class CommentOnPullRequestService {
     }
     createCommentByPatch({ patch, filename, lastCommitId, }) {
         return __awaiter(this, void 0, void 0, function* () {
-            const promise = this.getOpenAiSuggestions(patch).then((openAiSuggestions) => {
-                const { owner, repo, pullNumber } = this.pullRequest;
-                return CommentOnPullRequestService.getFirstChangedLineFromPatch(patch).then((firstChangedLineFromPatch) => this.octokitApi.rest.pulls.createReviewComment({
-                    owner,
-                    repo,
-                    pull_number: pullNumber,
-                    line: firstChangedLineFromPatch,
-                    path: filename,
-                    body: `[ChatGPTReviewer]\n${openAiSuggestions}`,
-                    commit_id: lastCommitId,
-                }));
+            const openAiSuggestions = yield this.getOpenAiSuggestions(patch);
+            const { owner, repo, pullNumber } = this.pullRequest;
+            const firstChangedLineFromPatch = yield CommentOnPullRequestService.getFirstChangedLineFromPatch(patch);
+            yield new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before making API request
+            yield this.octokitApi.rest.pulls.createReviewComment({
+                owner,
+                repo,
+                pull_number: pullNumber,
+                line: firstChangedLineFromPatch,
+                path: filename,
+                body: `[ChatGPTReviewer]\n${openAiSuggestions}`,
+                commit_id: lastCommitId,
             });
-            return promise;
         });
     }
     addCommentToPr() {
