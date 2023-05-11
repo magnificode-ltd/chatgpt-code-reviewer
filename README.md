@@ -1,6 +1,6 @@
 # chatgpt-reviewer-github-action
 
-GitHub action that provides a service for adding review comments to a pull request on GitHub. This service uses the GitHub REST API and the OpenAI API to generate suggestions for pull request changes.
+GitHub action that adds ChatGPT code review comments to pull requests. This service uses the GitHub REST API and the OpenAI API to generate suggestions for pull request changes.
 
 ### Before you start
 
@@ -15,9 +15,9 @@ By using this repository you acknowledge and approve of the fact that:
 
 To use this github action, you will need to have a GitHub account and an OpenAI API key. Also you will need to configure a GitHub action workflow.
 
-1. Visit https://platform.openai.com/account/api-keys to generate a new OpenAi Api key.
+1. Visit https://platform.openai.com/account/api-keys to generate a new OpenAI API key.
 2. Add new key with a name `OPENAI_API_KEY` as described [here](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository). As a value set generated OpenAi Api key from the step 1
-4. In a repository you want to run this action, create a file: `.github/workflows/chatgpt-reviewer-github-action.yml` with the next content:
+3. In a repository you want to run this action, create a file: `.github/workflows/chatgpt-reviewer-github-action.yml` with the next content:
    ```yml
    name: chatgpt-reviewer-github-action
    run-name: chatgpt-reviewer-github-action
@@ -34,6 +34,8 @@ To use this github action, you will need to have a GitHub account and an OpenAI 
              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
              OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
    ```
+Note that `secrets.GITHUB_TOKEN` is provided to you automatically by GitHub.
+
 ---
 
 ### About

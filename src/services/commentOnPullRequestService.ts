@@ -18,9 +18,7 @@ type PullRequestInfo = {
 
 class CommentOnPullRequestService {
   private readonly octokitApi: Octokit;
-
   private readonly openAiApi: OpenAIApi;
-
   private readonly pullRequest: PullRequestInfo;
 
   constructor() {
