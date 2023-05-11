@@ -98,8 +98,8 @@ class CommentOnPullRequestService {
                 model: OPENAI_MODEL,
                 messages: [{ role: 'user', content: prompt }],
             });
-            const responseText = ((_b = (_a = openAIResult.data.choices.shift()) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || '';
-            return responseText;
+            const openAiSuggestion = ((_b = (_a = openAIResult.data.choices.shift()) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || '';
+            return openAiSuggestion;
         });
     }
     static getFirstChangedLineFromPatch(patch) {
@@ -120,7 +120,7 @@ class CommentOnPullRequestService {
             if (!files) {
                 throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
             }
-            files.forEach((file) => __awaiter(this, void 0, void 0, function* () {
+            const commentPromisesList = files.map((file) => __awaiter(this, void 0, void 0, function* () {
                 if (file.patch) {
                     const openAiSuggestions = yield this.getOpenAiSuggestions(file.patch);
                     const commitsList = yield this.getCommitsList();
@@ -137,6 +137,14 @@ class CommentOnPullRequestService {
                     });
                 }
             }));
+            for (const commentPromise of commentPromisesList) {
+                try {
+                    yield commentPromise;
+                }
+                catch (error) {
+                    throw new Error(`Error occurred trying to comment the file ${error}`);
+                }
+            }
         });
     }
 }
