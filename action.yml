@@ -1,6 +1,6 @@
-name: chatgpt-reviewer-github-action
-description: GitHub action that provides a service for adding review comments to a pull request on GitHub
-author: MagnifiCode
+name: chatgpt-code-reviewer
+description: GitHub action that adds ChatGPT code review comments to pull requests
+author: MagnifiCode (https://magnificode.net)
 inputs:
   model:
     description: 'OpenAI model'
@@ -9,3 +9,7 @@ inputs:
 runs:
   using: node16
   main: dist/index.js
+branding:
+  icon: 'award'
+  color: 'yellow'
+

@@ -1,4 +1,4 @@
-# chatgpt-reviewer-github-action
+# chatgpt-code-reviewer
 
 GitHub action that adds ChatGPT code review comments to pull requests. This service uses the GitHub REST API and the OpenAI API to generate suggestions for pull request changes.
 
@@ -17,13 +17,13 @@ To use this github action, you will need to have a GitHub account and an OpenAI 
 
 1. Visit https://platform.openai.com/account/api-keys to generate a new OpenAI API key.
 2. Add new key with a name `OPENAI_API_KEY` as described [here](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository). As a value set generated OpenAi Api key from the step 1
-3. In a repository you want to run this action, create a file: `.github/workflows/chatgpt-reviewer-github-action.yml` with the next content:
+3. In a repository you want to run this action, create a file: `.github/workflows/chatgpt-code-reviewer.yml` with the next content:
    ```yml
-   name: chatgpt-reviewer-github-action
-   run-name: chatgpt-reviewer-github-action
+   name: chatgpt-code-reviewer
+   run-name: chatgpt-code-reviewer
    on: [pull_request]
    jobs:
-     chatgpt-reviewer-github-action:
+     chatgpt-code-reviewer:
        runs-on: ubuntu-latest
        steps:
          - name: ChatGPT Review
