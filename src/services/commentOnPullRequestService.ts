@@ -115,20 +115,24 @@ class CommentOnPullRequestService {
     filename: string;
     lastCommitId: string;
   }) {
-    const openAiSuggestions = await this.getOpenAiSuggestions(patch);
-    const { owner, repo, pullNumber } = this.pullRequest;
-    const firstChangedLineFromPatch =
-      await CommentOnPullRequestService.getFirstChangedLineFromPatch(patch);
+    const promise = this.getOpenAiSuggestions(patch).then((openAiSuggestions) => {
+      const { owner, repo, pullNumber } = this.pullRequest;
 
-    return this.octokitApi.rest.pulls.createReviewComment({
-      owner,
-      repo,
-      pull_number: pullNumber,
-      line: firstChangedLineFromPatch,
-      path: filename,
-      body: `[ChatGPTReviewer]\n${openAiSuggestions}`,
-      commit_id: lastCommitId,
+      return CommentOnPullRequestService.getFirstChangedLineFromPatch(patch).then(
+        (firstChangedLineFromPatch) =>
+          this.octokitApi.rest.pulls.createReviewComment({
+            owner,
+            repo,
+            pull_number: pullNumber,
+            line: firstChangedLineFromPatch,
+            path: filename,
+            body: `[ChatGPTReviewer]\n${openAiSuggestions}`,
+            commit_id: lastCommitId,
+          })
+      );
     });
+
+    return promise;
   }
 
   public async addCommentToPr() {
@@ -141,26 +145,24 @@ class CommentOnPullRequestService {
     const commitsList = await this.getCommitsList();
     const lastCommitId = commitsList[commitsList.length - 1].sha;
 
-    const commentPromisesList = files
-      .map(async (file) => {
-        if (file.patch) {
-          return this.createCommentByPatch({
-            patch: file.patch,
-            filename: file.filename,
-            lastCommitId,
-          });
-        }
-        return false;
-      })
-      .filter(Boolean);
-
     let previousPromise = Promise.resolve<any>({});
+
+    const commentPromisesList = files.map((file) => {
+      if (file.patch) {
+        previousPromise = this.createCommentByPatch({
+          patch: file.patch,
+          filename: file.filename,
+          lastCommitId,
+        });
+      }
+      return previousPromise;
+    });
 
     commentPromisesList.forEach((promise) => {
       previousPromise = previousPromise.then(() => promise).catch((error) => console.error(error));
     });
 
-    await previousPromise;
+    await Promise.all(commentPromisesList);
   }
 }
 
