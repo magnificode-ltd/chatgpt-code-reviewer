@@ -106,6 +106,31 @@ class CommentOnPullRequestService {
     return lineNumber;
   }
 
+  private async createCommentByPatch({
+    patch,
+    filename,
+    lastCommitId,
+  }: {
+    patch: string;
+    filename: string;
+    lastCommitId: string;
+  }) {
+    const openAiSuggestions = await this.getOpenAiSuggestions(patch);
+    const { owner, repo, pullNumber } = this.pullRequest;
+    const firstChangedLineFromPatch =
+      await CommentOnPullRequestService.getFirstChangedLineFromPatch(patch);
+
+    await this.octokitApi.rest.pulls.createReviewComment({
+      owner,
+      repo,
+      pull_number: pullNumber,
+      line: firstChangedLineFromPatch,
+      path: filename,
+      body: `[ChatGPTReviewer]\n${openAiSuggestions}`,
+      commit_id: lastCommitId,
+    });
+  }
+
   public async addCommentToPr() {
     const { files } = await this.getBranchDiff();
 
@@ -113,27 +138,20 @@ class CommentOnPullRequestService {
       throw new Error(errorsConfig[ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
     }
 
+    const commitsList = await this.getCommitsList();
+    const lastCommitId = commitsList[commitsList.length - 1].sha;
+
     const commentPromisesList = files.map(async (file) => {
       if (file.patch) {
-        const openAiSuggestions = await this.getOpenAiSuggestions(file.patch);
-        const commitsList = await this.getCommitsList();
-
-        const { owner, repo, pullNumber } = this.pullRequest;
-
-        const firstChangedLineFromPatch =
-          await CommentOnPullRequestService.getFirstChangedLineFromPatch(file.patch);
-
-        await this.octokitApi.rest.pulls.createReviewComment({
-          owner,
-          repo,
-          pull_number: pullNumber,
-          line: firstChangedLineFromPatch,
-          path: file.filename,
-          body: `[ChatGPTReviewer]\n${openAiSuggestions}`,
-          commit_id: commitsList[commitsList.length - 1].sha,
+        await this.createCommentByPatch({
+          patch: file.patch,
+          filename: file.filename,
+          lastCommitId,
         });
       }
     });
+
+    console.log({ commentPromisesList });
 
     for (const commentPromise of commentPromisesList) {
       try {
