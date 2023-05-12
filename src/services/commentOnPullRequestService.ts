@@ -92,10 +92,10 @@ class CommentOnPullRequestService {
     return openAiSuggestion;
   }
 
-  private async getOpenAiSuggestionsByData(patchData: any) {
+  private async getOpenAiSuggestionsByData(preparedData: string) {
     const prompt = `
       ${promptsConfig[Prompt.PREPARE_SUGGESTIONS]}\n
-      \n\n${{ patchData }}
+      \n\n${preparedData}
     `;
 
     const openAIResult = await this.openAiApi.createChatCompletion({
@@ -157,10 +157,12 @@ class CommentOnPullRequestService {
       throw new Error(errorsConfig[ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
     }
 
-    const patchData = files.map((file) => ({
-      filename: file.filename,
-      patch: file.patch,
-    }));
+    const patchData = files
+      .map((file) => ({
+        filename: file.filename,
+        patch: file.patch,
+      }))
+      .filter(({ filename }) => filename.startsWith('src'));
 
     const preparedData = JSON.stringify({ patchData });
 
