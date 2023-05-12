@@ -161,7 +161,7 @@ class CommentOnPullRequestService {
       .filter(({ filename }) => filename.startsWith('src'))
       .map(({ filename, patch }) => ({ filename, patch }));
 
-    const preparedData = JSON.stringify({ patchData });
+    const preparedData = JSON.stringify(patchData);
 
     const openAIResult = await this.openAiApi.createChatCompletion({
       model: OPENAI_MODEL,
