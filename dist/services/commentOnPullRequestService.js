@@ -175,13 +175,9 @@ class CommentOnPullRequestService {
                     'content-type': 'application/json',
                     Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
                 },
-            }).then((response) => {
-                if (response.ok) {
-                    response.json().then((json) => {
-                        console.log(json);
-                    });
-                }
-            });
+            })
+                .then((response) => response.json())
+                .then((data) => console.log(data));
             // const aiSuggestions = await this.getOpenAiSuggestionsByData(preparedData);
             // const commitsList = await this.getCommitsList();
             // const lastCommitId = commitsList[commitsList.length - 1].sha;
