@@ -91,8 +91,23 @@ class CommentOnPullRequestService {
                 throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.MISSING_PATCH_FOR_OPENAI_SUGGESTION]);
             }
             const prompt = `
-      ${promptsConfig_1.default[promptsConfig_1.Prompt.Check_Patch]}\n
+      ${promptsConfig_1.default[promptsConfig_1.Prompt.CHECK_PATCH]}\n
       Patch:\n\n"${patch}"
+    `;
+            const openAIResult = yield this.openAiApi.createChatCompletion({
+                model: OPENAI_MODEL,
+                messages: [{ role: 'user', content: prompt }],
+            });
+            const openAiSuggestion = ((_b = (_a = openAIResult.data.choices.shift()) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || '';
+            return openAiSuggestion;
+        });
+    }
+    getOpenAiSuggestionsByData(data) {
+        var _a, _b;
+        return __awaiter(this, void 0, void 0, function* () {
+            const prompt = `
+      ${promptsConfig_1.default[promptsConfig_1.Prompt.PREPARE_SUGGESTIONS]}\n
+      \n\n"${data}"
     `;
             const openAIResult = yield this.openAiApi.createChatCompletion({
                 model: OPENAI_MODEL,
@@ -141,7 +156,8 @@ class CommentOnPullRequestService {
                 filename: file.filename,
                 patch: file.patch,
             }));
-            console.log({ patchData });
+            const aiSuggestions = yield this.getOpenAiSuggestionsByData(patchData);
+            console.log({ aiSuggestions });
             // const commitsList = await this.getCommitsList();
             // const lastCommitId = commitsList[commitsList.length - 1].sha;
             // let previousPromise = Promise.resolve<any>({});

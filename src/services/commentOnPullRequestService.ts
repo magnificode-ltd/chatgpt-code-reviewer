@@ -78,8 +78,26 @@ class CommentOnPullRequestService {
     }
 
     const prompt = `
-      ${promptsConfig[Prompt.Check_Patch]}\n
+      ${promptsConfig[Prompt.CHECK_PATCH]}\n
       Patch:\n\n"${patch}"
+    `;
+
+    const openAIResult = await this.openAiApi.createChatCompletion({
+      model: OPENAI_MODEL,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const openAiSuggestion = openAIResult.data.choices.shift()?.message?.content || '';
+
+    return openAiSuggestion;
+  }
+
+  private async getOpenAiSuggestionsByData(
+    data: { filename: string; patch: string | undefined }[]
+  ) {
+    const prompt = `
+      ${promptsConfig[Prompt.PREPARE_SUGGESTIONS]}\n
+      \n\n"${data}"
     `;
 
     const openAIResult = await this.openAiApi.createChatCompletion({
@@ -146,7 +164,9 @@ class CommentOnPullRequestService {
       patch: file.patch,
     }));
 
-    console.log({ patchData });
+    const aiSuggestions = await this.getOpenAiSuggestionsByData(patchData);
+
+    console.log({ aiSuggestions });
 
     // const commitsList = await this.getCommitsList();
     // const lastCommitId = commitsList[commitsList.length - 1].sha;
