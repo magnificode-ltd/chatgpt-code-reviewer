@@ -101,6 +101,7 @@ class CommentOnPullRequestService {
     const openAIResult = await this.openAiApi.createChatCompletion({
       model: OPENAI_MODEL,
       messages: [{ role: 'user', content: prompt }],
+      temperature: 0,
     });
 
     const openAiSuggestion = openAIResult.data.choices.shift()?.message?.content || '';

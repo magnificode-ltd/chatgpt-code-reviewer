@@ -112,6 +112,7 @@ class CommentOnPullRequestService {
             const openAIResult = yield this.openAiApi.createChatCompletion({
                 model: OPENAI_MODEL,
                 messages: [{ role: 'user', content: prompt }],
+                temperature: 0,
             });
             const openAiSuggestion = ((_b = (_a = openAIResult.data.choices.shift()) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || '';
             return openAiSuggestion;
