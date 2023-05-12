@@ -97,7 +97,7 @@ class CommentOnPullRequestService {
   ) {
     const prompt = `
       ${promptsConfig[Prompt.PREPARE_SUGGESTIONS]}\n
-      \n\n"${data}"
+      \n\n"${JSON.stringify(data)}"
     `;
 
     const openAIResult = await this.openAiApi.createChatCompletion({
