@@ -1,5 +1,6 @@
 import { getInput } from '@actions/core';
 import { context, getOctokit } from '@actions/github';
+import fetch from 'node-fetch';
 import { Configuration, OpenAIApi } from 'openai';
 import errorsConfig, { ErrorMessage } from '../config/errorsConfig';
 import promptsConfig, { Prompt } from '../config/promptsConfig';
