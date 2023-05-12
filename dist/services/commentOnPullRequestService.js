@@ -102,12 +102,12 @@ class CommentOnPullRequestService {
             return openAiSuggestion;
         });
     }
-    getOpenAiSuggestionsByData(data) {
+    getOpenAiSuggestionsByData(preparedData) {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             const prompt = `
       ${promptsConfig_1.default[promptsConfig_1.Prompt.PREPARE_SUGGESTIONS]}\n
-      \n\n"${JSON.stringify({ patchData: data })}"
+      \n\n"${preparedData}"
     `;
             const openAIResult = yield this.openAiApi.createChatCompletion({
                 model: OPENAI_MODEL,
@@ -156,7 +156,8 @@ class CommentOnPullRequestService {
                 filename: file.filename,
                 patch: file.patch,
             }));
-            const aiSuggestions = yield this.getOpenAiSuggestionsByData(patchData);
+            const preparedData = JSON.stringify({ patchData });
+            const aiSuggestions = yield this.getOpenAiSuggestionsByData(preparedData);
             console.log({ aiSuggestions });
             // const commitsList = await this.getCommitsList();
             // const lastCommitId = commitsList[commitsList.length - 1].sha;

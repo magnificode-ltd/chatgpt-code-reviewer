@@ -92,12 +92,10 @@ class CommentOnPullRequestService {
     return openAiSuggestion;
   }
 
-  private async getOpenAiSuggestionsByData(
-    data: { filename: string; patch: string | undefined }[]
-  ) {
+  private async getOpenAiSuggestionsByData(preparedData: string) {
     const prompt = `
       ${promptsConfig[Prompt.PREPARE_SUGGESTIONS]}\n
-      \n\n"${JSON.stringify({ patchData: data })}"
+      \n\n"${preparedData}"
     `;
 
     const openAIResult = await this.openAiApi.createChatCompletion({
@@ -164,7 +162,9 @@ class CommentOnPullRequestService {
       patch: file.patch,
     }));
 
-    const aiSuggestions = await this.getOpenAiSuggestionsByData(patchData);
+    const preparedData = JSON.stringify({ patchData });
+
+    const aiSuggestions = await this.getOpenAiSuggestionsByData(preparedData);
 
     console.log({ aiSuggestions });
 
