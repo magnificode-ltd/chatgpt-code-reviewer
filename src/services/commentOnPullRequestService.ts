@@ -180,7 +180,8 @@ class CommentOnPullRequestService {
         Authorization: `Bearer  ${process.env.OPENAI_API_KEY}`,
       },
     }).then((response) => {
-      console.log({ response });
+      console.log(response.body);
+      console.log(JSON.stringify(response.body));
     });
 
     // const aiSuggestions = await this.getOpenAiSuggestionsByData(preparedData);
