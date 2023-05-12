@@ -31,13 +31,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = require("@actions/core");
 const github_1 = require("@actions/github");
-const node_fetch_1 = __importDefault(require("node-fetch"));
 const openai_1 = require("openai");
 const errorsConfig_1 = __importStar(require("../config/errorsConfig"));
 const promptsConfig_1 = __importStar(require("../config/promptsConfig"));
@@ -100,6 +96,7 @@ class CommentOnPullRequestService {
     `;
             const openAIResult = yield this.openAiApi.createChatCompletion({
                 model: OPENAI_MODEL,
+                max_tokens: 4000,
                 messages: [{ role: 'user', content: prompt }],
             });
             const openAiSuggestion = ((_b = (_a = openAIResult.data.choices.shift()) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || '';
@@ -116,6 +113,7 @@ class CommentOnPullRequestService {
             const openAIResult = yield this.openAiApi.createChatCompletion({
                 model: OPENAI_MODEL,
                 messages: [{ role: 'user', content: prompt }],
+                max_tokens: 4000,
             });
             const openAiSuggestion = ((_b = (_a = openAIResult.data.choices.shift()) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || '';
             return openAiSuggestion;
@@ -160,26 +158,27 @@ class CommentOnPullRequestService {
                 .filter(({ filename }) => filename.startsWith('src'))
                 .map(({ filename, patch }) => ({ filename, patch }));
             const preparedData = JSON.stringify(patchData);
-            yield (0, node_fetch_1.default)('https://api.openai.com/v1/chat/completions', {
-                body: JSON.stringify({
-                    model: OPENAI_MODEL,
-                    length: 4000,
-                    messages: [
-                        {
-                            role: 'user',
-                            content: `${promptsConfig_1.default[promptsConfig_1.Prompt.PREPARE_SUGGESTIONS]}\n${preparedData}`,
-                        },
-                    ],
-                }),
-                method: 'POST',
-                headers: {
-                    'content-type': 'application/json',
-                    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-                },
-            })
-                .then((response) => response.json())
-                .then((data) => console.log(data));
-            // const aiSuggestions = await this.getOpenAiSuggestionsByData(preparedData);
+            // await fetch('https://api.openai.com/v1/chat/completions', {
+            //   body: JSON.stringify({
+            //     model: OPENAI_MODEL,
+            //     length: 4000,
+            //     messages: [
+            //       {
+            //         role: 'user',
+            //         content: `${promptsConfig[Prompt.PREPARE_SUGGESTIONS]}\n${preparedData}`,
+            //       },
+            //     ],
+            //   }),
+            //   method: 'POST',
+            //   headers: {
+            //     'content-type': 'application/json',
+            //     Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+            //   },
+            // })
+            //   .then((response) => response.json())
+            //   .then((data) => console.log(data));
+            const aiSuggestions = yield this.getOpenAiSuggestionsByData(preparedData);
+            console.log({ aiSuggestions });
             // const commitsList = await this.getCommitsList();
             // const lastCommitId = commitsList[commitsList.length - 1].sha;
             // let previousPromise = Promise.resolve<any>({});

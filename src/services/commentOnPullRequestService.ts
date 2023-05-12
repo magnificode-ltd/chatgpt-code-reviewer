@@ -1,6 +1,5 @@
 import { getInput } from '@actions/core';
 import { context, getOctokit } from '@actions/github';
-import fetch from 'node-fetch';
 import { Configuration, OpenAIApi } from 'openai';
 import errorsConfig, { ErrorMessage } from '../config/errorsConfig';
 import promptsConfig, { Prompt } from '../config/promptsConfig';
@@ -85,6 +84,7 @@ class CommentOnPullRequestService {
 
     const openAIResult = await this.openAiApi.createChatCompletion({
       model: OPENAI_MODEL,
+      max_tokens: 4000,
       messages: [{ role: 'user', content: prompt }],
     });
 
@@ -102,6 +102,7 @@ class CommentOnPullRequestService {
     const openAIResult = await this.openAiApi.createChatCompletion({
       model: OPENAI_MODEL,
       messages: [{ role: 'user', content: prompt }],
+      max_tokens: 4000,
     });
 
     const openAiSuggestion = openAIResult.data.choices.shift()?.message?.content || '';
@@ -164,27 +165,29 @@ class CommentOnPullRequestService {
 
     const preparedData = JSON.stringify(patchData);
 
-    await fetch('https://api.openai.com/v1/chat/completions', {
-      body: JSON.stringify({
-        model: OPENAI_MODEL,
-        length: 4000,
-        messages: [
-          {
-            role: 'user',
-            content: `${promptsConfig[Prompt.PREPARE_SUGGESTIONS]}\n${preparedData}`,
-          },
-        ],
-      }),
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-    })
-      .then((response) => response.json())
-      .then((data) => console.log(data));
+    // await fetch('https://api.openai.com/v1/chat/completions', {
+    //   body: JSON.stringify({
+    //     model: OPENAI_MODEL,
+    //     length: 4000,
+    //     messages: [
+    //       {
+    //         role: 'user',
+    //         content: `${promptsConfig[Prompt.PREPARE_SUGGESTIONS]}\n${preparedData}`,
+    //       },
+    //     ],
+    //   }),
+    //   method: 'POST',
+    //   headers: {
+    //     'content-type': 'application/json',
+    //     Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    //   },
+    // })
+    //   .then((response) => response.json())
+    //   .then((data) => console.log(data));
 
-    // const aiSuggestions = await this.getOpenAiSuggestionsByData(preparedData);
+    const aiSuggestions = await this.getOpenAiSuggestionsByData(preparedData);
+
+    console.log({ aiSuggestions });
 
     // const commitsList = await this.getCommitsList();
     // const lastCommitId = commitsList[commitsList.length - 1].sha;
