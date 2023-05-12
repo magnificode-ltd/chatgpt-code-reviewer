@@ -34,10 +34,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = require("@actions/core");
 const github_1 = require("@actions/github");
+const gpt_3_encoder_1 = require("gpt-3-encoder");
 const openai_1 = require("openai");
 const errorsConfig_1 = __importStar(require("../config/errorsConfig"));
 const promptsConfig_1 = __importStar(require("../config/promptsConfig"));
 const OPENAI_MODEL = (0, core_1.getInput)('model');
+const MAX_TOKENS = 4000;
 class CommentOnPullRequestService {
     constructor() {
         var _a, _b, _c;
@@ -104,19 +106,23 @@ class CommentOnPullRequestService {
         });
     }
     getOpenAiSuggestionsByData(preparedData) {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
-            const prompt = `
-      ${promptsConfig_1.default[promptsConfig_1.Prompt.PREPARE_SUGGESTIONS]}\n
-      \n\n${preparedData}
-    `;
-            const openAIResult = yield this.openAiApi.createChatCompletion({
+            const { data } = yield this.openAiApi.createChatCompletion({
                 model: OPENAI_MODEL,
-                messages: [{ role: 'user', content: prompt }],
-                max_tokens: 4000,
+                max_tokens: MAX_TOKENS - (0, gpt_3_encoder_1.encode)(preparedData).length,
+                messages: [
+                    { role: 'system', content: promptsConfig_1.default[promptsConfig_1.Prompt.PREPARE_SUGGESTIONS] },
+                    { role: 'user', content: preparedData },
+                ],
             });
-            const openAiSuggestion = ((_b = (_a = openAIResult.data.choices.shift()) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || '';
-            return openAiSuggestion;
+            let completionText = '';
+            if (data.choices.length > 0) {
+                const choice = data.choices[0];
+                if (choice.message && choice.message.content) {
+                    completionText = choice.message.content;
+                }
+            }
+            return completionText;
         });
     }
     static getFirstChangedLineFromPatch(patch) {
@@ -136,7 +142,6 @@ class CommentOnPullRequestService {
             const openAiSuggestions = yield this.getOpenAiSuggestions(patch);
             const { owner, repo, pullNumber } = this.pullRequest;
             const firstChangedLineFromPatch = yield CommentOnPullRequestService.getFirstChangedLineFromPatch(patch);
-            yield new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before making API request
             yield this.octokitApi.rest.pulls.createReviewComment({
                 owner,
                 repo,

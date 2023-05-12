@@ -1,10 +1,12 @@
 import { getInput } from '@actions/core';
 import { context, getOctokit } from '@actions/github';
+import { encode } from 'gpt-3-encoder';
 import { Configuration, OpenAIApi } from 'openai';
 import errorsConfig, { ErrorMessage } from '../config/errorsConfig';
 import promptsConfig, { Prompt } from '../config/promptsConfig';
 
 const OPENAI_MODEL = getInput('model');
+const MAX_TOKENS = 4000;
 
 type Octokit = ReturnType<typeof getOctokit>;
 
@@ -94,20 +96,26 @@ class CommentOnPullRequestService {
   }
 
   private async getOpenAiSuggestionsByData(preparedData: string) {
-    const prompt = `
-      ${promptsConfig[Prompt.PREPARE_SUGGESTIONS]}\n
-      \n\n${preparedData}
-    `;
-
-    const openAIResult = await this.openAiApi.createChatCompletion({
+    const { data } = await this.openAiApi.createChatCompletion({
       model: OPENAI_MODEL,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 4000,
+      max_tokens: MAX_TOKENS - encode(preparedData).length,
+      messages: [
+        { role: 'system', content: promptsConfig[Prompt.PREPARE_SUGGESTIONS] },
+        { role: 'user', content: preparedData },
+      ],
     });
 
-    const openAiSuggestion = openAIResult.data.choices.shift()?.message?.content || '';
+    let completionText = '';
 
-    return openAiSuggestion;
+    if (data.choices.length > 0) {
+      const choice = data.choices[0];
+
+      if (choice.message && choice.message.content) {
+        completionText = choice.message.content;
+      }
+    }
+
+    return completionText;
   }
 
   static async getFirstChangedLineFromPatch(patch: string) {
@@ -138,8 +146,6 @@ class CommentOnPullRequestService {
 
     const firstChangedLineFromPatch =
       await CommentOnPullRequestService.getFirstChangedLineFromPatch(patch);
-
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before making API request
 
     await this.octokitApi.rest.pulls.createReviewComment({
       owner,
