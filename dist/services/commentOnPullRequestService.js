@@ -102,12 +102,12 @@ class CommentOnPullRequestService {
             return openAiSuggestion;
         });
     }
-    getOpenAiSuggestionsByData(preparedData) {
+    getOpenAiSuggestionsByData(patchString) {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             const prompt = `
       ${promptsConfig_1.default[promptsConfig_1.Prompt.PREPARE_SUGGESTIONS]}\n
-      \n\n${preparedData}
+      \n\n${patchString}
     `;
             const openAIResult = yield this.openAiApi.createChatCompletion({
                 model: OPENAI_MODEL,
@@ -152,14 +152,12 @@ class CommentOnPullRequestService {
             if (!files) {
                 throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
             }
-            const patchData = files
-                .map((file) => ({
-                filename: file.filename,
-                patch: file.patch,
-            }))
-                .filter(({ filename }) => filename.startsWith('src'));
-            const preparedData = JSON.stringify({ patchData }).toString();
-            const aiSuggestions = yield this.getOpenAiSuggestionsByData(preparedData);
+            const patchString = files
+                .filter(({ filename }) => filename.startsWith('src'))
+                .map((filename, patch) => `${filename}\n${patch}`)
+                .join('\n');
+            console.log({ patchString });
+            const aiSuggestions = yield this.getOpenAiSuggestionsByData(patchString);
             console.log({ aiSuggestions });
             // const commitsList = await this.getCommitsList();
             // const lastCommitId = commitsList[commitsList.length - 1].sha;
