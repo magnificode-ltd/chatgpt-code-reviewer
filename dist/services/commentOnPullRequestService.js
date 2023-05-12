@@ -107,7 +107,7 @@ class CommentOnPullRequestService {
         return __awaiter(this, void 0, void 0, function* () {
             const prompt = `
       ${promptsConfig_1.default[promptsConfig_1.Prompt.PREPARE_SUGGESTIONS]}\n
-      \n\n"${JSON.stringify(data)}"
+      \n\n"${JSON.stringify({ patchData: data })}"
     `;
             const openAIResult = yield this.openAiApi.createChatCompletion({
                 model: OPENAI_MODEL,
