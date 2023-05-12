@@ -102,17 +102,16 @@ class CommentOnPullRequestService {
             return openAiSuggestion;
         });
     }
-    getOpenAiSuggestionsByData(preparedData) {
+    getOpenAiSuggestionsByData(patchData) {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             const prompt = `
       ${promptsConfig_1.default[promptsConfig_1.Prompt.PREPARE_SUGGESTIONS]}\n
-      \n\n"${preparedData}"
+      \n\n${{ patchData }}
     `;
             const openAIResult = yield this.openAiApi.createChatCompletion({
                 model: OPENAI_MODEL,
                 messages: [{ role: 'user', content: prompt }],
-                max_tokens: 1024,
             });
             const openAiSuggestion = ((_b = (_a = openAIResult.data.choices.shift()) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || '';
             return openAiSuggestion;

@@ -92,16 +92,15 @@ class CommentOnPullRequestService {
     return openAiSuggestion;
   }
 
-  private async getOpenAiSuggestionsByData(preparedData: string) {
+  private async getOpenAiSuggestionsByData(patchData: any) {
     const prompt = `
       ${promptsConfig[Prompt.PREPARE_SUGGESTIONS]}\n
-      \n\n"${preparedData}"
+      \n\n${{ patchData }}
     `;
 
     const openAIResult = await this.openAiApi.createChatCompletion({
       model: OPENAI_MODEL,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1024,
     });
 
     const openAiSuggestion = openAIResult.data.choices.shift()?.message?.content || '';
