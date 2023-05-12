@@ -1,6 +1,5 @@
 import { getInput } from '@actions/core';
 import { context, getOctokit } from '@actions/github';
-import fetch from 'node-fetch';
 import { Configuration, OpenAIApi } from 'openai';
 import errorsConfig, { ErrorMessage } from '../config/errorsConfig';
 import promptsConfig, { Prompt } from '../config/promptsConfig';
@@ -164,28 +163,19 @@ class CommentOnPullRequestService {
 
     const preparedData = JSON.stringify({ patchData });
 
-    const prompt = `
-      ${promptsConfig[Prompt.PREPARE_SUGGESTIONS]}\n
-      \n\n${preparedData}
-    `;
+    const openAIResult = await this.openAiApi.createChatCompletion({
+      model: OPENAI_MODEL,
+      messages: [
+        {
+          role: 'user',
+          content: `${promptsConfig[Prompt.PREPARE_SUGGESTIONS]}\n\n${preparedData}`,
+        },
+      ],
+    });
 
-    await fetch('https://api.openai.com/v1/completions', {
-      body: JSON.stringify({
-        model: `${OPENAI_MODEL}`,
-        prompt,
-      }),
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        Authorization: `Bearer  ${process.env.OPENAI_API_KEY}`,
-      },
-    })
-      .then((response) => {
-        response.json();
-      })
-      .then((data) => {
-        console.log(data);
-      });
+    const openAiSuggestion = openAIResult.data.choices[0]?.message?.content || '';
+
+    console.log({ openAiSuggestion });
 
     // const aiSuggestions = await this.getOpenAiSuggestionsByData(preparedData);
 

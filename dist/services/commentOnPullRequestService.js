@@ -31,13 +31,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = require("@actions/core");
 const github_1 = require("@actions/github");
-const node_fetch_1 = __importDefault(require("node-fetch"));
 const openai_1 = require("openai");
 const errorsConfig_1 = __importStar(require("../config/errorsConfig"));
 const promptsConfig_1 = __importStar(require("../config/promptsConfig"));
@@ -151,6 +147,7 @@ class CommentOnPullRequestService {
         });
     }
     addCommentToPr() {
+        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             const { files } = yield this.getBranchDiff();
             if (!files) {
@@ -160,45 +157,17 @@ class CommentOnPullRequestService {
                 .filter(({ filename }) => filename.startsWith('src'))
                 .map(({ filename, patch }) => ({ filename, patch }));
             const preparedData = JSON.stringify({ patchData });
-            const prompt = `
-      ${promptsConfig_1.default[promptsConfig_1.Prompt.PREPARE_SUGGESTIONS]}\n
-      \n\n${preparedData}
-    `;
-            yield (0, node_fetch_1.default)('https://api.openai.com/v1/completions', {
-                body: JSON.stringify({
-                    model: `${OPENAI_MODEL}`,
-                    prompt,
-                }),
-                method: 'POST',
-                headers: {
-                    'content-type': 'application/json',
-                    Authorization: `Bearer  ${process.env.OPENAI_API_KEY}`,
-                },
-            })
-                .then((response) => {
-                response.json();
-            })
-                .then((data) => {
-                console.log(data);
+            const openAIResult = yield this.openAiApi.createChatCompletion({
+                model: OPENAI_MODEL,
+                messages: [
+                    {
+                        role: 'user',
+                        content: `${promptsConfig_1.default[promptsConfig_1.Prompt.PREPARE_SUGGESTIONS]}\n\n${preparedData}`,
+                    },
+                ],
             });
-            // const aiSuggestions = await this.getOpenAiSuggestionsByData(preparedData);
-            // const commitsList = await this.getCommitsList();
-            // const lastCommitId = commitsList[commitsList.length - 1].sha;
-            // let previousPromise = Promise.resolve<any>({});
-            // const commentPromisesList = files.map((file) => {
-            //   if (file.patch) {
-            //     previousPromise = this.createCommentByPatch({
-            //       patch: file.patch,
-            //       filename: file.filename,
-            //       lastCommitId,
-            //     });
-            //   }
-            //   return previousPromise;
-            // });
-            // commentPromisesList.forEach((promise) => {
-            //   previousPromise = previousPromise.then(() => promise).catch((error) => console.error(error));
-            // });
-            // await Promise.all(commentPromisesList);
+            const openAiSuggestion = ((_b = (_a = openAIResult.data.choices[0]) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || '';
+            console.log({ openAiSuggestion });
         });
     }
 }
