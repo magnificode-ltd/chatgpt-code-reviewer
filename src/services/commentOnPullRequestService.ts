@@ -167,6 +167,7 @@ class CommentOnPullRequestService {
     await fetch('https://api.openai.com/v1/chat/completions', {
       body: JSON.stringify({
         model: OPENAI_MODEL,
+        length: 4000,
         messages: [
           {
             role: 'user',
