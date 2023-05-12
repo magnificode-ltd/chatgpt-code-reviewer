@@ -147,7 +147,6 @@ class CommentOnPullRequestService {
         });
     }
     addCommentToPr() {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             const { files } = yield this.getBranchDiff();
             if (!files) {
@@ -157,17 +156,46 @@ class CommentOnPullRequestService {
                 .filter(({ filename }) => filename.startsWith('src'))
                 .map(({ filename, patch }) => ({ filename, patch }));
             const preparedData = JSON.stringify(patchData);
-            const openAIResult = yield this.openAiApi.createChatCompletion({
-                model: OPENAI_MODEL,
-                messages: [
-                    {
-                        role: 'user',
-                        content: `${promptsConfig_1.default[promptsConfig_1.Prompt.PREPARE_SUGGESTIONS]}\n\n${preparedData}`,
-                    },
-                ],
+            yield fetch('https://api.openai.com/v1/chat/completions', {
+                body: JSON.stringify({
+                    model: OPENAI_MODEL,
+                    messages: [
+                        {
+                            role: 'user',
+                            content: `${promptsConfig_1.default[promptsConfig_1.Prompt.PREPARE_SUGGESTIONS]}\n${preparedData}`,
+                        },
+                    ],
+                }),
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json',
+                    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+                },
+            }).then((response) => {
+                if (response.ok) {
+                    response.json().then((json) => {
+                        console.log(json);
+                    });
+                }
             });
-            const openAiSuggestion = ((_b = (_a = openAIResult.data.choices[0]) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || '';
-            console.log({ openAiSuggestion });
+            // const aiSuggestions = await this.getOpenAiSuggestionsByData(preparedData);
+            // const commitsList = await this.getCommitsList();
+            // const lastCommitId = commitsList[commitsList.length - 1].sha;
+            // let previousPromise = Promise.resolve<any>({});
+            // const commentPromisesList = files.map((file) => {
+            //   if (file.patch) {
+            //     previousPromise = this.createCommentByPatch({
+            //       patch: file.patch,
+            //       filename: file.filename,
+            //       lastCommitId,
+            //     });
+            //   }
+            //   return previousPromise;
+            // });
+            // commentPromisesList.forEach((promise) => {
+            //   previousPromise = previousPromise.then(() => promise).catch((error) => console.error(error));
+            // });
+            // await Promise.all(commentPromisesList);
         });
     }
 }

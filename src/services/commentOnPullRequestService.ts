@@ -163,19 +163,28 @@ class CommentOnPullRequestService {
 
     const preparedData = JSON.stringify(patchData);
 
-    const openAIResult = await this.openAiApi.createChatCompletion({
-      model: OPENAI_MODEL,
-      messages: [
-        {
-          role: 'user',
-          content: `${promptsConfig[Prompt.PREPARE_SUGGESTIONS]}\n\n${preparedData}`,
-        },
-      ],
+    await fetch('https://api.openai.com/v1/chat/completions', {
+      body: JSON.stringify({
+        model: OPENAI_MODEL,
+        messages: [
+          {
+            role: 'user',
+            content: `${promptsConfig[Prompt.PREPARE_SUGGESTIONS]}\n${preparedData}`,
+          },
+        ],
+      }),
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+    }).then((response) => {
+      if (response.ok) {
+        response.json().then((json) => {
+          console.log(json);
+        });
+      }
     });
-
-    const openAiSuggestion = openAIResult.data.choices[0]?.message?.content || '';
-
-    console.log({ openAiSuggestion });
 
     // const aiSuggestions = await this.getOpenAiSuggestionsByData(preparedData);
 
