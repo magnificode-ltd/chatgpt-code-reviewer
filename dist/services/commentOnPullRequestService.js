@@ -154,7 +154,7 @@ class CommentOnPullRequestService {
             }
             const patchString = files
                 .filter(({ filename }) => filename.startsWith('src'))
-                .map((filename, patch) => `${filename}\n${patch}`)
+                .map(({ filename, patch }) => `${filename}\n${patch}`)
                 .join('\n');
             console.log({ patchString });
             const aiSuggestions = yield this.getOpenAiSuggestionsByData(patchString);
