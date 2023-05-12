@@ -137,23 +137,28 @@ class CommentOnPullRequestService {
             if (!files) {
                 throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
             }
-            const commitsList = yield this.getCommitsList();
-            const lastCommitId = commitsList[commitsList.length - 1].sha;
-            let previousPromise = Promise.resolve({});
-            const commentPromisesList = files.map((file) => {
-                if (file.patch) {
-                    previousPromise = this.createCommentByPatch({
-                        patch: file.patch,
-                        filename: file.filename,
-                        lastCommitId,
-                    });
-                }
-                return previousPromise;
-            });
-            commentPromisesList.forEach((promise) => {
-                previousPromise = previousPromise.then(() => promise).catch((error) => console.error(error));
-            });
-            yield Promise.all(commentPromisesList);
+            const patchData = files.map((file) => ({
+                filename: file.filename,
+                patch: file.patch,
+            }));
+            console.log({ patchData });
+            // const commitsList = await this.getCommitsList();
+            // const lastCommitId = commitsList[commitsList.length - 1].sha;
+            // let previousPromise = Promise.resolve<any>({});
+            // const commentPromisesList = files.map((file) => {
+            //   if (file.patch) {
+            //     previousPromise = this.createCommentByPatch({
+            //       patch: file.patch,
+            //       filename: file.filename,
+            //       lastCommitId,
+            //     });
+            //   }
+            //   return previousPromise;
+            // });
+            // commentPromisesList.forEach((promise) => {
+            //   previousPromise = previousPromise.then(() => promise).catch((error) => console.error(error));
+            // });
+            // await Promise.all(commentPromisesList);
         });
     }
 }

@@ -141,27 +141,34 @@ class CommentOnPullRequestService {
       throw new Error(errorsConfig[ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
     }
 
-    const commitsList = await this.getCommitsList();
-    const lastCommitId = commitsList[commitsList.length - 1].sha;
+    const patchData = files.map((file) => ({
+      filename: file.filename,
+      patch: file.patch,
+    }));
 
-    let previousPromise = Promise.resolve<any>({});
+    console.log({ patchData });
 
-    const commentPromisesList = files.map((file) => {
-      if (file.patch) {
-        previousPromise = this.createCommentByPatch({
-          patch: file.patch,
-          filename: file.filename,
-          lastCommitId,
-        });
-      }
-      return previousPromise;
-    });
+    // const commitsList = await this.getCommitsList();
+    // const lastCommitId = commitsList[commitsList.length - 1].sha;
 
-    commentPromisesList.forEach((promise) => {
-      previousPromise = previousPromise.then(() => promise).catch((error) => console.error(error));
-    });
+    // let previousPromise = Promise.resolve<any>({});
 
-    await Promise.all(commentPromisesList);
+    // const commentPromisesList = files.map((file) => {
+    //   if (file.patch) {
+    //     previousPromise = this.createCommentByPatch({
+    //       patch: file.patch,
+    //       filename: file.filename,
+    //       lastCommitId,
+    //     });
+    //   }
+    //   return previousPromise;
+    // });
+
+    // commentPromisesList.forEach((promise) => {
+    //   previousPromise = previousPromise.then(() => promise).catch((error) => console.error(error));
+    // });
+
+    // await Promise.all(commentPromisesList);
   }
 }
 
