@@ -31,10 +31,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = require("@actions/core");
 const github_1 = require("@actions/github");
 const gpt_3_encoder_1 = require("gpt-3-encoder");
+const node_fetch_1 = __importDefault(require("node-fetch"));
 const openai_1 = require("openai");
 const errorsConfig_1 = __importStar(require("../config/errorsConfig"));
 const promptsConfig_1 = __importStar(require("../config/promptsConfig"));
@@ -163,7 +167,7 @@ class CommentOnPullRequestService {
                 .map(({ filename, patch }) => ({ filename, patch }));
             const preparedData = JSON.stringify(patchData);
             const maxTokens = MAX_TOKENS - (0, gpt_3_encoder_1.encode)(`${promptsConfig_1.default[promptsConfig_1.Prompt.SYSTEM_PROMPT]}\n${preparedData}`).length;
-            const response = yield fetch('https://api.openai.com/v1/chat/completions', {
+            const response = yield (0, node_fetch_1.default)('https://api.openai.com/v1/chat/completions', {
                 body: JSON.stringify({
                     model: OPENAI_MODEL,
                     max_tokens: maxTokens,

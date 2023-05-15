@@ -1,6 +1,7 @@
 import { getInput } from '@actions/core';
 import { context, getOctokit } from '@actions/github';
 import { encode } from 'gpt-3-encoder';
+import fetch from 'node-fetch';
 import { Configuration, OpenAIApi } from 'openai';
 import errorsConfig, { ErrorMessage } from '../config/errorsConfig';
 import promptsConfig, { Prompt } from '../config/promptsConfig';
