@@ -86,7 +86,6 @@ class CommentOnPullRequestService {
 
     const openAIResult = await this.openAiApi.createChatCompletion({
       model: OPENAI_MODEL,
-      max_tokens: 4000,
       messages: [{ role: 'user', content: prompt }],
     });
 
@@ -171,29 +170,27 @@ class CommentOnPullRequestService {
 
     const preparedData = JSON.stringify(patchData);
 
-    // await fetch('https://api.openai.com/v1/chat/completions', {
-    //   body: JSON.stringify({
-    //     model: OPENAI_MODEL,
-    //     length: 4000,
-    //     messages: [
-    //       {
-    //         role: 'user',
-    //         content: `${promptsConfig[Prompt.PREPARE_SUGGESTIONS]}\n${preparedData}`,
-    //       },
-    //     ],
-    //   }),
-    //   method: 'POST',
-    //   headers: {
-    //     'content-type': 'application/json',
-    //     Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-    //   },
-    // })
-    //   .then((response) => response.json())
-    //   .then((data) => console.log(data));
+    await fetch('https://api.openai.com/v1/chat/completions', {
+      body: JSON.stringify({
+        model: OPENAI_MODEL,
+        max_tokens: MAX_TOKENS - encode(preparedData).length,
+        messages: [
+          {
+            role: 'user',
+            content: `${promptsConfig[Prompt.PREPARE_SUGGESTIONS]}\n${preparedData}`,
+          },
+        ],
+      }),
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => console.log(data));
 
-    const aiSuggestions = await this.getOpenAiSuggestionsByData(preparedData);
-
-    console.log({ aiSuggestions });
+    // const aiSuggestions = await this.getOpenAiSuggestionsByData(preparedData);
 
     // const commitsList = await this.getCommitsList();
     // const lastCommitId = commitsList[commitsList.length - 1].sha;

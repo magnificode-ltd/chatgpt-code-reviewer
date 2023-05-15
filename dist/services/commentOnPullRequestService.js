@@ -98,7 +98,6 @@ class CommentOnPullRequestService {
     `;
             const openAIResult = yield this.openAiApi.createChatCompletion({
                 model: OPENAI_MODEL,
-                max_tokens: 4000,
                 messages: [{ role: 'user', content: prompt }],
             });
             const openAiSuggestion = ((_b = (_a = openAIResult.data.choices.shift()) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || '';
@@ -163,27 +162,26 @@ class CommentOnPullRequestService {
                 .filter(({ filename }) => filename.startsWith('src'))
                 .map(({ filename, patch }) => ({ filename, patch }));
             const preparedData = JSON.stringify(patchData);
-            // await fetch('https://api.openai.com/v1/chat/completions', {
-            //   body: JSON.stringify({
-            //     model: OPENAI_MODEL,
-            //     length: 4000,
-            //     messages: [
-            //       {
-            //         role: 'user',
-            //         content: `${promptsConfig[Prompt.PREPARE_SUGGESTIONS]}\n${preparedData}`,
-            //       },
-            //     ],
-            //   }),
-            //   method: 'POST',
-            //   headers: {
-            //     'content-type': 'application/json',
-            //     Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-            //   },
-            // })
-            //   .then((response) => response.json())
-            //   .then((data) => console.log(data));
-            const aiSuggestions = yield this.getOpenAiSuggestionsByData(preparedData);
-            console.log({ aiSuggestions });
+            yield fetch('https://api.openai.com/v1/chat/completions', {
+                body: JSON.stringify({
+                    model: OPENAI_MODEL,
+                    max_tokens: MAX_TOKENS - (0, gpt_3_encoder_1.encode)(preparedData).length,
+                    messages: [
+                        {
+                            role: 'user',
+                            content: `${promptsConfig_1.default[promptsConfig_1.Prompt.PREPARE_SUGGESTIONS]}\n${preparedData}`,
+                        },
+                    ],
+                }),
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json',
+                    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+                },
+            })
+                .then((response) => response.json())
+                .then((data) => console.log(data));
+            // const aiSuggestions = await this.getOpenAiSuggestionsByData(preparedData);
             // const commitsList = await this.getCommitsList();
             // const lastCommitId = commitsList[commitsList.length - 1].sha;
             // let previousPromise = Promise.resolve<any>({});
