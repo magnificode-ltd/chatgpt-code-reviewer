@@ -165,9 +165,10 @@ class CommentOnPullRequestService {
             const patchData = files
                 .filter(({ filename }) => filename.startsWith('src'))
                 .map(({ filename, patch }) => ({ filename, patch }));
-            const preparedData = JSON.stringify(patchData);
-            // const maxTokens: number =
-            //   MAX_TOKENS - encode(`${promptsConfig[Prompt.SYSTEM_PROMPT]}\n${preparedData}`).length;
+            let preparedData = JSON.stringify(patchData);
+            if (preparedData.length > MAX_TOKENS) {
+                preparedData = preparedData.slice(0, MAX_TOKENS);
+            }
             const response = yield (0, node_fetch_1.default)('https://api.openai.com/v1/chat/completions', {
                 body: JSON.stringify({
                     model: OPENAI_MODEL,
