@@ -31,14 +31,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = require("@actions/core");
 const github_1 = require("@actions/github");
 const gpt_3_encoder_1 = require("gpt-3-encoder");
-const node_fetch_1 = __importDefault(require("node-fetch"));
 const openai_1 = require("openai");
 const errorsConfig_1 = __importStar(require("../config/errorsConfig"));
 const promptsConfig_1 = __importStar(require("../config/promptsConfig"));
@@ -114,7 +110,7 @@ class CommentOnPullRequestService {
                 model: OPENAI_MODEL,
                 max_tokens: MAX_TOKENS - (0, gpt_3_encoder_1.encode)(preparedData).length,
                 messages: [
-                    { role: 'system', content: promptsConfig_1.default[promptsConfig_1.Prompt.PREPARE_SUGGESTIONS] },
+                    { role: 'system', content: promptsConfig_1.default[promptsConfig_1.Prompt.SYSTEM_PROMPT] },
                     { role: 'user', content: preparedData },
                 ],
             });
@@ -166,15 +162,14 @@ class CommentOnPullRequestService {
                 .filter(({ filename }) => filename.startsWith('src'))
                 .map(({ filename, patch }) => ({ filename, patch }));
             const preparedData = JSON.stringify(patchData);
-            yield (0, node_fetch_1.default)('https://api.openai.com/v1/chat/completions', {
+            const maxTokens = MAX_TOKENS - (0, gpt_3_encoder_1.encode)(`${promptsConfig_1.default[promptsConfig_1.Prompt.SYSTEM_PROMPT]}\n${preparedData}`).length;
+            const response = yield fetch('https://api.openai.com/v1/chat/completions', {
                 body: JSON.stringify({
                     model: OPENAI_MODEL,
-                    max_tokens: MAX_TOKENS - (0, gpt_3_encoder_1.encode)(preparedData).length,
+                    max_tokens: maxTokens,
                     messages: [
-                        {
-                            role: 'user',
-                            content: `${promptsConfig_1.default[promptsConfig_1.Prompt.PREPARE_SUGGESTIONS]}\n${preparedData}`,
-                        },
+                        { role: 'system', content: promptsConfig_1.default[promptsConfig_1.Prompt.SYSTEM_PROMPT] },
+                        { role: 'user', content: preparedData },
                     ],
                 }),
                 method: 'POST',
@@ -182,9 +177,9 @@ class CommentOnPullRequestService {
                     'content-type': 'application/json',
                     Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
                 },
-            })
-                .then((response) => response.json())
-                .then((data) => console.log(data));
+            });
+            const responseJson = yield response.json();
+            console.log({ responseJson });
             // const aiSuggestions = await this.getOpenAiSuggestionsByData(preparedData);
             // const commitsList = await this.getCommitsList();
             // const lastCommitId = commitsList[commitsList.length - 1].sha;

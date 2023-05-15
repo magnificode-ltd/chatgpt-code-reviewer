@@ -1,7 +1,6 @@
 import { getInput } from '@actions/core';
 import { context, getOctokit } from '@actions/github';
 import { encode } from 'gpt-3-encoder';
-import fetch from 'node-fetch';
 import { Configuration, OpenAIApi } from 'openai';
 import errorsConfig, { ErrorMessage } from '../config/errorsConfig';
 import promptsConfig, { Prompt } from '../config/promptsConfig';
@@ -100,7 +99,7 @@ class CommentOnPullRequestService {
       model: OPENAI_MODEL,
       max_tokens: MAX_TOKENS - encode(preparedData).length,
       messages: [
-        { role: 'system', content: promptsConfig[Prompt.PREPARE_SUGGESTIONS] },
+        { role: 'system', content: promptsConfig[Prompt.SYSTEM_PROMPT] },
         { role: 'user', content: preparedData },
       ],
     });
@@ -170,16 +169,16 @@ class CommentOnPullRequestService {
       .map(({ filename, patch }) => ({ filename, patch }));
 
     const preparedData = JSON.stringify(patchData);
+    const maxTokens: number =
+      MAX_TOKENS - encode(`${promptsConfig[Prompt.SYSTEM_PROMPT]}\n${preparedData}`).length;
 
-    await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       body: JSON.stringify({
         model: OPENAI_MODEL,
-        max_tokens: MAX_TOKENS - encode(preparedData).length,
+        max_tokens: maxTokens,
         messages: [
-          {
-            role: 'user',
-            content: `${promptsConfig[Prompt.PREPARE_SUGGESTIONS]}\n${preparedData}`,
-          },
+          { role: 'system', content: promptsConfig[Prompt.SYSTEM_PROMPT] },
+          { role: 'user', content: preparedData },
         ],
       }),
       method: 'POST',
@@ -187,9 +186,11 @@ class CommentOnPullRequestService {
         'content-type': 'application/json',
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
-    })
-      .then((response) => response.json())
-      .then((data) => console.log(data));
+    });
+
+    const responseJson = await response.json();
+
+    console.log({ responseJson });
 
     // const aiSuggestions = await this.getOpenAiSuggestionsByData(preparedData);
 
