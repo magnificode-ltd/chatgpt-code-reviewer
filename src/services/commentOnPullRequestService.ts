@@ -170,13 +170,12 @@ class CommentOnPullRequestService {
       .map(({ filename, patch }) => ({ filename, patch }));
 
     const preparedData = JSON.stringify(patchData);
-    const maxTokens: number =
-      MAX_TOKENS - encode(`${promptsConfig[Prompt.SYSTEM_PROMPT]}\n${preparedData}`).length;
+    // const maxTokens: number =
+    //   MAX_TOKENS - encode(`${promptsConfig[Prompt.SYSTEM_PROMPT]}\n${preparedData}`).length;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       body: JSON.stringify({
         model: OPENAI_MODEL,
-        max_tokens: maxTokens,
         messages: [
           { role: 'system', content: promptsConfig[Prompt.SYSTEM_PROMPT] },
           { role: 'user', content: preparedData },
