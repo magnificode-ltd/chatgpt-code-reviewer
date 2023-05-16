@@ -40,11 +40,11 @@ Note that `secrets.GITHUB_TOKEN` is provided to you automatically by GitHub.
 
 ### About
 
-<a href="https://magnificode.net">
+<a href="https://bit.ly/3nXn4EN">
    <img src='docs/images/logo.png' alt='MagnifiCode'/>
 </a>
 
-This repository was created & is maintained by MagnifiCode. We provide web development services. We specialize in React/Node/AWS (etc) and are available for [hire](https://magnificode.net/contact). Learn more about us on [magnificode.net](https://magnificode.net/).
+This repository was created & is maintained by MagnifiCode. We provide web development services. We specialize in React/Node/AWS (etc) and are available for [hire](https://bit.ly/3IcWXR3). Learn more about us on our [website](https://bit.ly/3nXn4EN).
 
 Follow us on [Twitter](https://twitter.com/magnificodehq) and [LinkedIn](https://www.linkedin.com/company/magnificode-software) for more updates.
 
