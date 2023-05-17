@@ -109,10 +109,10 @@ class CommentOnPullRequestService {
             pull_number: pullNumber,
             line: firstChangedLineFromPatch,
             path: suggestionByFilename.filename,
-            body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
+            // body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
+            body: '[ChatGPTReviewer]\ntest',
             commit_id: lastCommitId,
           });
-          console.log('comment was created');
         } catch (error) {
           console.error('The error was occurred trying to add a comment', error);
           throw error;
