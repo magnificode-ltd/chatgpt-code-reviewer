@@ -78,6 +78,8 @@ class CommentOnPullRequestService {
 
       console.log('createReviewComments');
       console.log({ suggestionByFilename });
+      console.log({ suggestionsList });
+      console.log({ suggestionsListByFile });
 
       if (suggestionByFilename) {
         try {

@@ -100,6 +100,8 @@ class CommentOnPullRequestService {
                 const suggestionByFilename = suggestionsListByFile.find((suggestion) => suggestion.filename === file.filename);
                 console.log('createReviewComments');
                 console.log({ suggestionByFilename });
+                console.log({ suggestionsList });
+                console.log({ suggestionsListByFile });
                 if (suggestionByFilename) {
                     try {
                         console.time(`createReviewComment for file: ${file.filename}`);
