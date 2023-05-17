@@ -115,7 +115,7 @@ class CommentOnPullRequestService {
             firstPortion.forEach((file, index) => __awaiter(this, void 0, void 0, function* () {
                 const firstChangedLineFromPatch = (0, getFirstChangedLineFromPatch_1.default)(file.patch);
                 const suggestionByFilename = suggestionsList.find(({ filename }) => filename === file.filename);
-                if (suggestionByFilename && index === 1) {
+                if (suggestionByFilename && index === 0) {
                     try {
                         console.log('trying to create comment');
                         console.log({

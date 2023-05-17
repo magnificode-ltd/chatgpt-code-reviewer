@@ -101,7 +101,7 @@ class CommentOnPullRequestService {
         ({ filename }) => filename === file.filename
       );
 
-      if (suggestionByFilename && index === 1) {
+      if (suggestionByFilename && index === 0) {
         try {
           console.log('trying to create comment');
           console.log({
