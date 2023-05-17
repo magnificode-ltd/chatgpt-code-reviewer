@@ -4,7 +4,7 @@ const splitOpenAISuggestionsByFiles = (text: string) => {
   const results = [];
 
   for (const match of matches) {
-    const filename = match[1];
+    const filename = match[1].trim();
     const suggestion = match[2].trim();
     results.push({ filename, suggestion });
   }
