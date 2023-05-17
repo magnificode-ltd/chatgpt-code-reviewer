@@ -30,6 +30,9 @@ const getOpenAiSuggestions = async (patch: string): Promise<any> => {
     if (!response.ok) throw new Error('Failed to post data.');
 
     const responseJson = (await response.json()) as any;
+
+    console.log({ responseJson });
+
     const openAiSuggestion = responseJson.data.choices.shift()?.message?.content || '';
 
     return openAiSuggestion;
