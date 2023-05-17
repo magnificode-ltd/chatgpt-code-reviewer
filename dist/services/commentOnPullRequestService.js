@@ -115,15 +115,21 @@ class CommentOnPullRequestService {
                 const lastCommitId = yield this.getLastCommit();
                 const firstChangedLineFromPatch = (0, getFirstChangedLineFromPatch_1.default)(file.patch);
                 const suggestionByFilename = suggestionsList.find(({ filename }) => filename === file.filename);
-                yield this.octokitApi.rest.pulls.createReviewComment({
-                    owner,
-                    repo,
-                    pull_number: pullNumber,
-                    line: firstChangedLineFromPatch,
-                    path: suggestionByFilename === null || suggestionByFilename === void 0 ? void 0 : suggestionByFilename.filename,
-                    body: `[ChatGPTReviewer]\n${suggestionByFilename === null || suggestionByFilename === void 0 ? void 0 : suggestionByFilename.suggestion}`,
-                    commit_id: lastCommitId,
-                });
+                try {
+                    yield this.octokitApi.rest.pulls.createReviewComment({
+                        owner,
+                        repo,
+                        pull_number: pullNumber,
+                        line: firstChangedLineFromPatch,
+                        path: suggestionByFilename === null || suggestionByFilename === void 0 ? void 0 : suggestionByFilename.filename,
+                        body: `[ChatGPTReviewer]\n${suggestionByFilename === null || suggestionByFilename === void 0 ? void 0 : suggestionByFilename.suggestion}`,
+                        commit_id: lastCommitId,
+                    });
+                }
+                catch (error) {
+                    console.error('The error was occurred trying to add a comment', error);
+                    throw error;
+                }
             }));
             // try {
             //   const suggestion = await getOpenAiSuggestions({

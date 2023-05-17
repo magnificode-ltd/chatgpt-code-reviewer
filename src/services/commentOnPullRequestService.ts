@@ -100,16 +100,20 @@ class CommentOnPullRequestService {
       const suggestionByFilename = suggestionsList.find(
         ({ filename }) => filename === file.filename
       );
-
-      await this.octokitApi.rest.pulls.createReviewComment({
-        owner,
-        repo,
-        pull_number: pullNumber,
-        line: firstChangedLineFromPatch,
-        path: suggestionByFilename?.filename,
-        body: `[ChatGPTReviewer]\n${suggestionByFilename?.suggestion}`,
-        commit_id: lastCommitId,
-      });
+      try {
+        await this.octokitApi.rest.pulls.createReviewComment({
+          owner,
+          repo,
+          pull_number: pullNumber,
+          line: firstChangedLineFromPatch,
+          path: suggestionByFilename?.filename,
+          body: `[ChatGPTReviewer]\n${suggestionByFilename?.suggestion}`,
+          commit_id: lastCommitId,
+        });
+      } catch (error) {
+        console.error('The error was occurred trying to add a comment', error);
+        throw error;
+      }
     });
 
     // try {
