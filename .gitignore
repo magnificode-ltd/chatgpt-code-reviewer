@@ -4,6 +4,8 @@ node_modules/
 # Buid files
 dist/*
 !dist/index.js
+!dist/sourcemap-register.js
+
 
 # TypeScript cache
 *.tsbuildinfo
