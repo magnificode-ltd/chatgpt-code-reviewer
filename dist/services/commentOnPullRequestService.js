@@ -117,14 +117,23 @@ class CommentOnPullRequestService {
                 const suggestionByFilename = suggestionsList.find(({ filename }) => filename === file.filename);
                 if (suggestionByFilename) {
                     try {
+                        console.log('trying to create comment');
+                        console.log({
+                            owner,
+                            repo,
+                            pull_number: pullNumber,
+                            line: firstChangedLineFromPatch,
+                            path: suggestionByFilename.filename,
+                            body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
+                            commit_id: lastCommitId,
+                        });
                         yield this.octokitApi.rest.pulls.createReviewComment({
                             owner,
                             repo,
                             pull_number: pullNumber,
                             line: firstChangedLineFromPatch,
                             path: suggestionByFilename.filename,
-                            // body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
-                            body: '[ChatGPTReviewer]\ntest',
+                            body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
                             commit_id: lastCommitId,
                         });
                     }

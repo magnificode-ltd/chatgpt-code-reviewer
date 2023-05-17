@@ -103,14 +103,24 @@ class CommentOnPullRequestService {
 
       if (suggestionByFilename) {
         try {
+          console.log('trying to create comment');
+          console.log({
+            owner,
+            repo,
+            pull_number: pullNumber,
+            line: firstChangedLineFromPatch,
+            path: suggestionByFilename.filename,
+            body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
+            commit_id: lastCommitId,
+          });
+
           await this.octokitApi.rest.pulls.createReviewComment({
             owner,
             repo,
             pull_number: pullNumber,
             line: firstChangedLineFromPatch,
             path: suggestionByFilename.filename,
-            // body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
-            body: '[ChatGPTReviewer]\ntest',
+            body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
             commit_id: lastCommitId,
           });
         } catch (error) {
