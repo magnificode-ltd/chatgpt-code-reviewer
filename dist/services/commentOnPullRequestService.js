@@ -132,7 +132,8 @@ class CommentOnPullRequestService {
                             pull_number: pullNumber,
                             line: firstChangedLineFromPatch,
                             path: suggestionByFilename.filename,
-                            body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
+                            // body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
+                            body: 'test',
                             commit_id: lastCommitId,
                         });
                     }
