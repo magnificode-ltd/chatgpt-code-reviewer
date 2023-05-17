@@ -1,14 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const splitOpenAISuggestionsByFiles = (text) => {
-    console.log({ suggestion: text });
-    const regex = /`([^`]+)`:\s*((?:\n\s+-[^`]+)+)/g;
-    const matches = [...text.matchAll(regex)];
-    const filenamesAndContents = matches.map((match) => {
-        const filename = match[1];
-        const suggestion = match[2].trim().replace(/\n\s+-/g, '');
-        return { filename, suggestion };
-    });
-    return filenamesAndContents;
+    const regex = /(\S+):([\s\S]*?)(?=\n\n\S+|$)/g;
+    const matches = text.matchAll(regex);
+    const result = [];
+    for (const match of matches) {
+        const [, filename, suggestion] = match;
+        result.push({ filename, suggestion });
+    }
+    return result;
 };
 exports.default = splitOpenAISuggestionsByFiles;

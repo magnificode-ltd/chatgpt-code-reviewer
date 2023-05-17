@@ -1,17 +1,15 @@
 const splitOpenAISuggestionsByFiles = (text: string) => {
-  console.log({ suggestion: text });
+  const regex = /(\S+):([\s\S]*?)(?=\n\n\S+|$)/g;
+  const matches = text.matchAll(regex);
 
-  const regex = /`([^`]+)`:\s*((?:\n\s+-[^`]+)+)/g;
-  const matches = [...text.matchAll(regex)];
+  const result: { filename: string; suggestion: string }[] = [];
 
-  const filenamesAndContents = matches.map((match) => {
-    const filename = match[1];
-    const suggestion = match[2].trim().replace(/\n\s+-/g, '');
+  for (const match of matches) {
+    const [, filename, suggestion] = match;
+    result.push({ filename, suggestion });
+  }
 
-    return { filename, suggestion };
-  });
-
-  return filenamesAndContents;
+  return result;
 };
 
 export default splitOpenAISuggestionsByFiles;
