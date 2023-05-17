@@ -93,25 +93,15 @@ class CommentOnPullRequestService {
 
     const suggestionsList = splitOpenAISuggestionsByFiles(getFirstPortionSuggestionsList);
     const { owner, repo, pullNumber } = this.pullRequest;
+    const lastCommitId = await this.getLastCommit();
 
     firstPortion.forEach(async (file) => {
-      const lastCommitId = await this.getLastCommit();
       const firstChangedLineFromPatch = getFirstChangedLineFromPatch(file.patch);
       const suggestionByFilename = suggestionsList.find(
         ({ filename }) => filename === file.filename
       );
 
       if (suggestionByFilename) {
-        console.log({
-          owner,
-          repo,
-          pull_number: pullNumber,
-          line: firstChangedLineFromPatch,
-          path: suggestionByFilename.filename,
-          body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
-          commit_id: lastCommitId,
-        });
-
         try {
           await this.octokitApi.rest.pulls.createReviewComment({
             owner,
@@ -119,8 +109,7 @@ class CommentOnPullRequestService {
             pull_number: pullNumber,
             line: firstChangedLineFromPatch,
             path: suggestionByFilename.filename,
-            // body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
-            body: 'test',
+            body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
             commit_id: lastCommitId,
           });
         } catch (error) {
