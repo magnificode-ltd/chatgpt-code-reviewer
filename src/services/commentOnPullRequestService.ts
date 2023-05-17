@@ -1,29 +1,17 @@
-import { getInput } from '@actions/core';
 import { context, getOctokit } from '@actions/github';
 import { encode } from 'gpt-3-encoder';
-import fetch from 'node-fetch';
-import { Configuration, OpenAIApi } from 'openai';
 import errorsConfig, { ErrorMessage } from '../config/errorsConfig';
-import promptsConfig, { Prompt } from '../config/promptsConfig';
+import { FilenameWithPatch, Octokit, PullRequestInfo } from './types';
+import concatPatchesToSingleString from './utils/concatPatchesToSingleString';
+import getFirstChangedLineFromPatch from './utils/getFirstChangedLineFromPatch';
+import getOpenAiSuggestions from './utils/getOpenAiSuggestions';
+import getPortionFilesByTokenRange from './utils/getPortionFilesByTokenRange';
+import splitOpenAISuggestionsByFiles from './utils/splitOpenAISuggestionsByFiles';
 
-const OPENAI_MODEL = getInput('model');
 const MAX_TOKENS = 4000;
-
-type Octokit = ReturnType<typeof getOctokit>;
-
-type FilenameWithPatch = { filename: string; patch?: string; tokensUsed: number };
-
-type PullRequestInfo = {
-  owner: string;
-  repo: string;
-  pullHeadRef: string;
-  pullBaseRef: string;
-  pullNumber: number;
-};
 
 class CommentOnPullRequestService {
   private readonly octokitApi: Octokit;
-  private readonly openAiApi: OpenAIApi;
   private readonly pullRequest: PullRequestInfo;
 
   constructor() {
@@ -40,7 +28,6 @@ class CommentOnPullRequestService {
     }
 
     this.octokitApi = getOctokit(process.env.GITHUB_TOKEN);
-    this.openAiApi = new OpenAIApi(new Configuration({ apiKey: process.env.OPENAI_API_KEY }));
 
     this.pullRequest = {
       owner: context.repo.owner,
@@ -64,7 +51,7 @@ class CommentOnPullRequestService {
     return branchDiff;
   }
 
-  private async getCommitsList() {
+  private async getLastCommit() {
     const { owner, repo, pullNumber } = this.pullRequest;
 
     const { data: commitsList } = await this.octokitApi.rest.pulls.listCommits({
@@ -74,126 +61,7 @@ class CommentOnPullRequestService {
       pull_number: pullNumber,
     });
 
-    return commitsList;
-  }
-
-  private async getOpenAiSuggestions(patch?: string) {
-    if (!patch) {
-      throw new Error(errorsConfig[ErrorMessage.MISSING_PATCH_FOR_OPENAI_SUGGESTION]);
-    }
-
-    const prompt = `
-      ${promptsConfig[Prompt.CHECK_PATCH]}\n
-      Patch:\n\n"${patch}"
-    `;
-
-    const openAIResult = await this.openAiApi.createChatCompletion({
-      model: OPENAI_MODEL,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const openAiSuggestion = openAIResult.data.choices.shift()?.message?.content || '';
-
-    return openAiSuggestion;
-  }
-
-  private async getOpenAiSuggestionsByData(preparedData: string) {
-    const { data } = await this.openAiApi.createChatCompletion({
-      model: OPENAI_MODEL,
-      max_tokens: MAX_TOKENS - encode(preparedData).length,
-      messages: [
-        { role: 'system', content: promptsConfig[Prompt.SYSTEM_PROMPT] },
-        { role: 'user', content: preparedData },
-      ],
-    });
-
-    let completionText = '';
-
-    if (data.choices.length > 0) {
-      const choice = data.choices[0];
-
-      if (choice.message && choice.message.content) {
-        completionText = choice.message.content;
-      }
-    }
-
-    return completionText;
-  }
-
-  static async getFirstChangedLineFromPatch(patch: string) {
-    const lineHeaderRegExp = /^@@ -\d+,\d+ \+(\d+),(\d+) @@/;
-    const lines = patch.split('\n');
-    const lineHeaderMatch = lines[0].match(lineHeaderRegExp);
-
-    let lineNumber = 1;
-
-    if (lineHeaderMatch) {
-      lineNumber = parseInt(lineHeaderMatch[1], 10);
-    }
-
-    return lineNumber;
-  }
-
-  private async createCommentByPatch({
-    patch,
-    filename,
-    lastCommitId,
-  }: {
-    patch: string;
-    filename: string;
-    lastCommitId: string;
-  }) {
-    const openAiSuggestions = await this.getOpenAiSuggestions(patch);
-    const { owner, repo, pullNumber } = this.pullRequest;
-
-    const firstChangedLineFromPatch =
-      await CommentOnPullRequestService.getFirstChangedLineFromPatch(patch);
-
-    await this.octokitApi.rest.pulls.createReviewComment({
-      owner,
-      repo,
-      pull_number: pullNumber,
-      line: firstChangedLineFromPatch,
-      path: filename,
-      body: `[ChatGPTReviewer]\n${openAiSuggestions}`,
-      commit_id: lastCommitId,
-    });
-  }
-
-  private getFilesWithSuggestions(text: string) {
-    const regex = /`([^`]+)`:\s*((?:\n\s+-[^`]+)+)/g;
-    const matches = [...text.matchAll(regex)];
-
-    const filenamesAndContents = matches.map((match) => {
-      const filename = match[1];
-      const content = match[2].trim().replace(/\n\s+-/g, '');
-
-      return { filename, content };
-    });
-
-    return filenamesAndContents;
-  }
-
-  private getFilesInTokenRange(tokensRange: number, files: FilenameWithPatch[]) {
-    const filesInTokenRange: FilenameWithPatch[] = [];
-    const filesOutOfTokensRange: FilenameWithPatch[] = [];
-
-    let tokensUsed = 0;
-
-    files.forEach((file) => {
-      if (tokensUsed + file.tokensUsed <= tokensRange) {
-        filesInTokenRange.push(file);
-        tokensUsed += file.tokensUsed;
-      } else {
-        filesOutOfTokensRange.push(file);
-        tokensUsed = file.tokensUsed;
-      }
-    });
-
-    return {
-      filesInTokenRange,
-      filesOutOfTokensRange,
-    };
+    return commitsList[commitsList.length - 1].sha;
   }
 
   public async addCommentToPr() {
@@ -203,42 +71,90 @@ class CommentOnPullRequestService {
       throw new Error(errorsConfig[ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
     }
 
-    const filePatchList = files
-      .filter(({ filename }) => filename.startsWith('src'))
-      .map(({ filename, patch }) => ({
-        filename,
-        patch,
-        tokensUsed: encode(patch || '').length,
-      }));
+    const patchesList: FilenameWithPatch[] = [];
 
-    const { filesInTokenRange, filesOutOfTokensRange } = this.getFilesInTokenRange(
-      MAX_TOKENS / 2,
-      filePatchList
+    files
+      .filter(({ filename }) => ['package.json', 'package-lock.json'].includes(filename) === false)
+      .forEach(({ filename, patch }) => {
+        if (patch) {
+          patchesList.push({
+            filename,
+            patch,
+            tokensUsed: encode(patch).length,
+          });
+        }
+      });
+
+    const { firstPortion } = getPortionFilesByTokenRange(MAX_TOKENS / 2, patchesList);
+
+    const getFirstPortionSuggestionsList = await getOpenAiSuggestions(
+      concatPatchesToSingleString(firstPortion)
     );
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      body: JSON.stringify({
-        model: OPENAI_MODEL,
-        messages: [
-          { role: 'system', content: promptsConfig[Prompt.SYSTEM_PROMPT] },
-          {
-            role: 'user',
-            content: filesInTokenRange
-              .map(({ filename, patch }) => `${filename}\n${patch}\n`)
-              .join(''),
-          },
-        ],
-      }),
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
+    const suggestionsList = splitOpenAISuggestionsByFiles(getFirstPortionSuggestionsList);
+    const { owner, repo, pullNumber } = this.pullRequest;
+
+    firstPortion.forEach(async (file) => {
+      const lastCommitId = await this.getLastCommit();
+      const firstChangedLineFromPatch = getFirstChangedLineFromPatch(file.patch);
+      const suggestionByFilename = suggestionsList.find(
+        ({ filename }) => filename === file.filename
+      );
+
+      await this.octokitApi.rest.pulls.createReviewComment({
+        owner,
+        repo,
+        pull_number: pullNumber,
+        line: firstChangedLineFromPatch,
+        path: suggestionByFilename?.filename,
+        body: `[ChatGPTReviewer]\n${suggestionByFilename?.suggestion}`,
+        commit_id: lastCommitId,
+      });
     });
 
-    const responseJson = await response.json();
+    // try {
+    //   const suggestion = await getOpenAiSuggestions({
+    //     data: this.concatPatches(filesInTokenRange),
+    //   });
 
-    console.log({ responseJson });
+    //   const { owner, repo, pullNumber } = this.pullRequest;
+
+    //   const suggestionsByFiles = splitOpenAISuggestionsByFiles(suggestion);
+
+    //   suggestionsByFiles.forEach(async ({ filename, suggestion }) => {
+    //     const firstChangedLineFromPatch =
+    //       await CommentOnPullRequestService.getFirstChangedLineFromPatch(file.patch!);
+    //     const lastCommitId = await this.getLastCommit();
+
+    //     await this.octokitApi.rest.pulls.createReviewComment({
+    //       owner,
+    //       repo,
+    //       pull_number: pullNumber,
+    //       line: firstChangedLineFromPatch,
+    //       path: filename,
+    //       body: `[ChatGPTReviewer]\n${suggestion}`,
+    //       commit_id: lastCommitId,
+    //     });
+    //   });
+
+    //   let requestCount = 1;
+    //   const intervalId = setInterval(async () => {
+    //     if (requestCount >= filesOutOfTokensRange.length) {
+    //       clearInterval(intervalId);
+    //       return;
+    //     }
+
+    //     const { filesOutOfTokensRange: newFilesOutOfTokensRange } = getPortionFilesByTokenRange(
+    //       MAX_TOKENS / 2,
+    //       filesOutOfTokensRange
+    //     );
+
+    //     await getOpenAiSuggestions({ data: this.concatPatches(newFilesOutOfTokensRange) });
+    //     requestCount += 1;
+    //   }, 60000); // Interval set to 1 minute (60,000 milliseconds)
+    // } catch (error) {
+    //   console.error('Error posting sequential data:', error);
+    // }
 
     /**
      * 1. Check how many tokens we have per file

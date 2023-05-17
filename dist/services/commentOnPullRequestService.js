@@ -35,14 +35,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const core_1 = require("@actions/core");
 const github_1 = require("@actions/github");
 const gpt_3_encoder_1 = require("gpt-3-encoder");
-const node_fetch_1 = __importDefault(require("node-fetch"));
-const openai_1 = require("openai");
 const errorsConfig_1 = __importStar(require("../config/errorsConfig"));
-const promptsConfig_1 = __importStar(require("../config/promptsConfig"));
-const OPENAI_MODEL = (0, core_1.getInput)('model');
+const concatPatchesToSingleString_1 = __importDefault(require("./utils/concatPatchesToSingleString"));
+const getFirstChangedLineFromPatch_1 = __importDefault(require("./utils/getFirstChangedLineFromPatch"));
+const getOpenAiSuggestions_1 = __importDefault(require("./utils/getOpenAiSuggestions"));
+const getPortionFilesByTokenRange_1 = __importDefault(require("./utils/getPortionFilesByTokenRange"));
+const splitOpenAISuggestionsByFiles_1 = __importDefault(require("./utils/splitOpenAISuggestionsByFiles"));
 const MAX_TOKENS = 4000;
 class CommentOnPullRequestService {
     constructor() {
@@ -57,7 +57,6 @@ class CommentOnPullRequestService {
             throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.NO_PULLREQUEST_IN_CONTEXT]);
         }
         this.octokitApi = (0, github_1.getOctokit)(process.env.GITHUB_TOKEN);
-        this.openAiApi = new openai_1.OpenAIApi(new openai_1.Configuration({ apiKey: process.env.OPENAI_API_KEY }));
         this.pullRequest = {
             owner: github_1.context.repo.owner,
             repo: github_1.context.repo.repo,
@@ -78,7 +77,7 @@ class CommentOnPullRequestService {
             return branchDiff;
         });
     }
-    getCommitsList() {
+    getLastCommit() {
         return __awaiter(this, void 0, void 0, function* () {
             const { owner, repo, pullNumber } = this.pullRequest;
             const { data: commitsList } = yield this.octokitApi.rest.pulls.listCommits({
@@ -87,103 +86,8 @@ class CommentOnPullRequestService {
                 per_page: 50,
                 pull_number: pullNumber,
             });
-            return commitsList;
+            return commitsList[commitsList.length - 1].sha;
         });
-    }
-    getOpenAiSuggestions(patch) {
-        var _a, _b;
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!patch) {
-                throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.MISSING_PATCH_FOR_OPENAI_SUGGESTION]);
-            }
-            const prompt = `
-      ${promptsConfig_1.default[promptsConfig_1.Prompt.CHECK_PATCH]}\n
-      Patch:\n\n"${patch}"
-    `;
-            const openAIResult = yield this.openAiApi.createChatCompletion({
-                model: OPENAI_MODEL,
-                messages: [{ role: 'user', content: prompt }],
-            });
-            const openAiSuggestion = ((_b = (_a = openAIResult.data.choices.shift()) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || '';
-            return openAiSuggestion;
-        });
-    }
-    getOpenAiSuggestionsByData(preparedData) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const { data } = yield this.openAiApi.createChatCompletion({
-                model: OPENAI_MODEL,
-                max_tokens: MAX_TOKENS - (0, gpt_3_encoder_1.encode)(preparedData).length,
-                messages: [
-                    { role: 'system', content: promptsConfig_1.default[promptsConfig_1.Prompt.SYSTEM_PROMPT] },
-                    { role: 'user', content: preparedData },
-                ],
-            });
-            let completionText = '';
-            if (data.choices.length > 0) {
-                const choice = data.choices[0];
-                if (choice.message && choice.message.content) {
-                    completionText = choice.message.content;
-                }
-            }
-            return completionText;
-        });
-    }
-    static getFirstChangedLineFromPatch(patch) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const lineHeaderRegExp = /^@@ -\d+,\d+ \+(\d+),(\d+) @@/;
-            const lines = patch.split('\n');
-            const lineHeaderMatch = lines[0].match(lineHeaderRegExp);
-            let lineNumber = 1;
-            if (lineHeaderMatch) {
-                lineNumber = parseInt(lineHeaderMatch[1], 10);
-            }
-            return lineNumber;
-        });
-    }
-    createCommentByPatch({ patch, filename, lastCommitId, }) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const openAiSuggestions = yield this.getOpenAiSuggestions(patch);
-            const { owner, repo, pullNumber } = this.pullRequest;
-            const firstChangedLineFromPatch = yield CommentOnPullRequestService.getFirstChangedLineFromPatch(patch);
-            yield this.octokitApi.rest.pulls.createReviewComment({
-                owner,
-                repo,
-                pull_number: pullNumber,
-                line: firstChangedLineFromPatch,
-                path: filename,
-                body: `[ChatGPTReviewer]\n${openAiSuggestions}`,
-                commit_id: lastCommitId,
-            });
-        });
-    }
-    getFilesWithSuggestions(text) {
-        const regex = /`([^`]+)`:\s*((?:\n\s+-[^`]+)+)/g;
-        const matches = [...text.matchAll(regex)];
-        const filenamesAndContents = matches.map((match) => {
-            const filename = match[1];
-            const content = match[2].trim().replace(/\n\s+-/g, '');
-            return { filename, content };
-        });
-        return filenamesAndContents;
-    }
-    getFilesInTokenRange(tokensRange, files) {
-        const filesInTokenRange = [];
-        const filesOutOfTokensRange = [];
-        let tokensUsed = 0;
-        files.forEach((file) => {
-            if (tokensUsed + file.tokensUsed <= tokensRange) {
-                filesInTokenRange.push(file);
-                tokensUsed += file.tokensUsed;
-            }
-            else {
-                filesOutOfTokensRange.push(file);
-                tokensUsed = file.tokensUsed;
-            }
-        });
-        return {
-            filesInTokenRange,
-            filesOutOfTokensRange,
-        };
     }
     addCommentToPr() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -191,35 +95,72 @@ class CommentOnPullRequestService {
             if (!files) {
                 throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
             }
-            const filePatchList = files
-                .filter(({ filename }) => filename.startsWith('src'))
-                .map(({ filename, patch }) => ({
-                filename,
-                patch,
-                tokensUsed: (0, gpt_3_encoder_1.encode)(patch || '').length,
-            }));
-            const { filesInTokenRange, filesOutOfTokensRange } = this.getFilesInTokenRange(MAX_TOKENS / 2, filePatchList);
-            const response = yield (0, node_fetch_1.default)('https://api.openai.com/v1/chat/completions', {
-                body: JSON.stringify({
-                    model: OPENAI_MODEL,
-                    messages: [
-                        { role: 'system', content: promptsConfig_1.default[promptsConfig_1.Prompt.SYSTEM_PROMPT] },
-                        {
-                            role: 'user',
-                            content: filesInTokenRange
-                                .map(({ filename, patch }) => `${filename}\n${patch}\n`)
-                                .join(''),
-                        },
-                    ],
-                }),
-                method: 'POST',
-                headers: {
-                    'content-type': 'application/json',
-                    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-                },
+            const patchesList = [];
+            files
+                .filter(({ filename }) => ['package.json', 'package-lock.json'].includes(filename) === false)
+                .forEach(({ filename, patch }) => {
+                if (patch) {
+                    patchesList.push({
+                        filename,
+                        patch,
+                        tokensUsed: (0, gpt_3_encoder_1.encode)(patch).length,
+                    });
+                }
             });
-            const responseJson = yield response.json();
-            console.log({ responseJson });
+            const { firstPortion } = (0, getPortionFilesByTokenRange_1.default)(MAX_TOKENS / 2, patchesList);
+            const getFirstPortionSuggestionsList = yield (0, getOpenAiSuggestions_1.default)((0, concatPatchesToSingleString_1.default)(firstPortion));
+            const suggestionsList = (0, splitOpenAISuggestionsByFiles_1.default)(getFirstPortionSuggestionsList);
+            const { owner, repo, pullNumber } = this.pullRequest;
+            firstPortion.forEach((file) => __awaiter(this, void 0, void 0, function* () {
+                const lastCommitId = yield this.getLastCommit();
+                const firstChangedLineFromPatch = (0, getFirstChangedLineFromPatch_1.default)(file.patch);
+                const suggestionByFilename = suggestionsList.find(({ filename }) => filename === file.filename);
+                yield this.octokitApi.rest.pulls.createReviewComment({
+                    owner,
+                    repo,
+                    pull_number: pullNumber,
+                    line: firstChangedLineFromPatch,
+                    path: suggestionByFilename === null || suggestionByFilename === void 0 ? void 0 : suggestionByFilename.filename,
+                    body: `[ChatGPTReviewer]\n${suggestionByFilename === null || suggestionByFilename === void 0 ? void 0 : suggestionByFilename.suggestion}`,
+                    commit_id: lastCommitId,
+                });
+            }));
+            // try {
+            //   const suggestion = await getOpenAiSuggestions({
+            //     data: this.concatPatches(filesInTokenRange),
+            //   });
+            //   const { owner, repo, pullNumber } = this.pullRequest;
+            //   const suggestionsByFiles = splitOpenAISuggestionsByFiles(suggestion);
+            //   suggestionsByFiles.forEach(async ({ filename, suggestion }) => {
+            //     const firstChangedLineFromPatch =
+            //       await CommentOnPullRequestService.getFirstChangedLineFromPatch(file.patch!);
+            //     const lastCommitId = await this.getLastCommit();
+            //     await this.octokitApi.rest.pulls.createReviewComment({
+            //       owner,
+            //       repo,
+            //       pull_number: pullNumber,
+            //       line: firstChangedLineFromPatch,
+            //       path: filename,
+            //       body: `[ChatGPTReviewer]\n${suggestion}`,
+            //       commit_id: lastCommitId,
+            //     });
+            //   });
+            //   let requestCount = 1;
+            //   const intervalId = setInterval(async () => {
+            //     if (requestCount >= filesOutOfTokensRange.length) {
+            //       clearInterval(intervalId);
+            //       return;
+            //     }
+            //     const { filesOutOfTokensRange: newFilesOutOfTokensRange } = getPortionFilesByTokenRange(
+            //       MAX_TOKENS / 2,
+            //       filesOutOfTokensRange
+            //     );
+            //     await getOpenAiSuggestions({ data: this.concatPatches(newFilesOutOfTokensRange) });
+            //     requestCount += 1;
+            //   }, 60000); // Interval set to 1 minute (60,000 milliseconds)
+            // } catch (error) {
+            //   console.error('Error posting sequential data:', error);
+            // }
             /**
              * 1. Check how many tokens we have per file
              * 2. If there are more then 2k tokens was used - make a request
