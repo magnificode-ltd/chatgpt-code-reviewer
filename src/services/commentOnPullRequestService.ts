@@ -112,6 +112,7 @@ class CommentOnPullRequestService {
             body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
             commit_id: lastCommitId,
           });
+          console.log('comment was created');
         } catch (error) {
           console.error('The error was occurred trying to add a comment', error);
           throw error;
@@ -162,16 +163,6 @@ class CommentOnPullRequestService {
     // } catch (error) {
     //   console.error('Error posting sequential data:', error);
     // }
-
-    /**
-     * 1. Check how many tokens we have per file
-     * 2. If there are more then 2k tokens was used - make a request
-     * 3. Check every patch in every file and push it to an array until max used tokens will be reached.
-     * 4. If one file will have more than 2k tokens, than what? ***
-     * 5. How to deal with a different models? There are models which allow more then 4k token ***
-     */
-
-    // if (jsonDataRequest.length > MAX_TOKENS) jsonDataRequest = jsonDataRequest.slice(0, MAX_TOKENS);
   }
 }
 
