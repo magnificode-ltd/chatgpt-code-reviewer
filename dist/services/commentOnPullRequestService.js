@@ -143,7 +143,7 @@ class CommentOnPullRequestService {
                     break;
                 }
             }
-            console.log(`The next files ${filesTooLongToBeChecked.join(', ')} is too long to be checked`);
+            console.log(`The changes for ${filesTooLongToBeChecked.join(', ')} is too long to be checked.`);
             const listOfFilesByTokenRange = (0, divideFilesByTokenRange_1.default)(MAX_TOKENS / 2, patchesList);
             yield this.createReviewComments(listOfFilesByTokenRange[0]);
             if (listOfFilesByTokenRange.length > 1) {
