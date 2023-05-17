@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const splitOpenAISuggestionsByFiles = (text) => {
+    console.log({ suggestion: text });
     const regex = /`([^`]+)`:\s*((?:\n\s+-[^`]+)+)/g;
     const matches = [...text.matchAll(regex)];
     const filenamesAndContents = matches.map((match) => {

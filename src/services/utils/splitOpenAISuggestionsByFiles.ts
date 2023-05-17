@@ -1,4 +1,6 @@
 const splitOpenAISuggestionsByFiles = (text: string) => {
+  console.log({ suggestion: text });
+
   const regex = /`([^`]+)`:\s*((?:\n\s+-[^`]+)+)/g;
   const matches = [...text.matchAll(regex)];
 

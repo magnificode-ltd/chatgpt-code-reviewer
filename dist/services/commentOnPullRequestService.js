@@ -115,15 +115,6 @@ class CommentOnPullRequestService {
                 const lastCommitId = yield this.getLastCommit();
                 const firstChangedLineFromPatch = (0, getFirstChangedLineFromPatch_1.default)(file.patch);
                 const suggestionByFilename = suggestionsList.find(({ filename }) => filename === file.filename);
-                console.log({
-                    owner,
-                    repo,
-                    pull_number: pullNumber,
-                    line: firstChangedLineFromPatch,
-                    path: suggestionByFilename === null || suggestionByFilename === void 0 ? void 0 : suggestionByFilename.filename,
-                    body: `[ChatGPTReviewer]\n${suggestionByFilename === null || suggestionByFilename === void 0 ? void 0 : suggestionByFilename.suggestion}`,
-                    commit_id: lastCommitId,
-                });
                 yield this.octokitApi.rest.pulls.createReviewComment({
                     owner,
                     repo,
