@@ -124,7 +124,11 @@ class CommentOnPullRequestService {
       }
     }
 
-    console.log(`The changes for ${filesTooLongToBeChecked.join(', ')} is too long to be checked.`);
+    if (filesTooLongToBeChecked.length > 0) {
+      console.log(
+        `The changes for ${filesTooLongToBeChecked.join(', ')} is too long to be checked.`
+      );
+    }
 
     const listOfFilesByTokenRange = divideFilesByTokenRange(MAX_TOKENS / 2, patchesList);
 
