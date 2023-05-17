@@ -85,7 +85,7 @@ class CommentOnPullRequestService {
         }
       });
 
-    const { firstPortion } = getPortionFilesByTokenRange(MAX_TOKENS / 1.4, patchesList);
+    const { firstPortion } = getPortionFilesByTokenRange(MAX_TOKENS / 3, patchesList);
 
     const getFirstPortionSuggestionsList = await getOpenAiSuggestions(
       concatPatchesToSingleString(firstPortion)
