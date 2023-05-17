@@ -64,6 +64,45 @@ class CommentOnPullRequestService {
     return commitsList[commitsList.length - 1].sha;
   }
 
+  private async createPullRequestComment(files: FilenameWithPatch[]) {
+    const getFirstPortionSuggestionsList = await getOpenAiSuggestions(
+      concatPatchesToSingleString(files)
+    );
+
+    const suggestionsList = splitOpenAISuggestionsByFiles(getFirstPortionSuggestionsList);
+    const { owner, repo, pullNumber } = this.pullRequest;
+    const lastCommitId = await this.getLastCommit();
+
+    for (const file of files) {
+      const firstChangedLineFromPatch = getFirstChangedLineFromPatch(file.patch);
+      const suggestionByFilename = suggestionsList.find(
+        (suggestion) => suggestion.filename === file.filename
+      );
+
+      if (suggestionByFilename) {
+        try {
+          console.time(`createReviewComment for file: ${file.filename}`);
+
+          await this.octokitApi.rest.pulls.createReviewComment({
+            owner,
+            repo,
+            pull_number: pullNumber,
+            line: firstChangedLineFromPatch,
+            path: suggestionByFilename.filename,
+            body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
+            commit_id: lastCommitId,
+          });
+
+          console.log('comment was created successfully');
+          console.timeEnd(`createReviewComment for file: ${file.filename}`);
+        } catch (error) {
+          console.error('The error was occurred trying to add a comment', error);
+          throw error;
+        }
+      }
+    }
+  }
+
   public async addCommentToPr() {
     const { files } = await this.getBranchDiff();
 
@@ -85,87 +124,24 @@ class CommentOnPullRequestService {
         }
       });
 
-    const { firstPortion } = getPortionFilesByTokenRange(MAX_TOKENS / 2, patchesList);
-
-    const getFirstPortionSuggestionsList = await getOpenAiSuggestions(
-      concatPatchesToSingleString(firstPortion)
+    const { firstPortion, secondPortion } = getPortionFilesByTokenRange(
+      MAX_TOKENS / 2,
+      patchesList
     );
 
-    const suggestionsList = splitOpenAISuggestionsByFiles(getFirstPortionSuggestionsList);
-    const { owner, repo, pullNumber } = this.pullRequest;
-    const lastCommitId = await this.getLastCommit();
+    await this.createPullRequestComment(firstPortion);
 
-    for (const file of firstPortion) {
-      const firstChangedLineFromPatch = getFirstChangedLineFromPatch(file.patch);
-      const suggestionByFilename = suggestionsList.find(
-        ({ filename }) => filename === file.filename
-      );
+    let requestCount = 1;
 
-      if (suggestionByFilename) {
-        try {
-          console.log('trying to create comment');
-          console.time(`createReviewComment for file: ${file.filename}`);
-          await this.octokitApi.rest.pulls.createReviewComment({
-            owner,
-            repo,
-            pull_number: pullNumber,
-            line: firstChangedLineFromPatch,
-            path: suggestionByFilename.filename,
-            body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
-            commit_id: lastCommitId,
-          });
-          console.log('comment was created successfully');
-          console.timeEnd(`createReviewComment for file: ${file.filename}`);
-        } catch (error) {
-          console.error('The error was occurred trying to add a comment', error);
-          throw error;
-        }
+    const intervalId = setInterval(async () => {
+      if (requestCount >= secondPortion.length) {
+        clearInterval(intervalId);
+        return;
       }
-    }
 
-    // try {
-    //   const suggestion = await getOpenAiSuggestions({
-    //     data: this.concatPatches(filesInTokenRange),
-    //   });
-
-    //   const { owner, repo, pullNumber } = this.pullRequest;
-
-    //   const suggestionsByFiles = splitOpenAISuggestionsByFiles(suggestion);
-
-    //   suggestionsByFiles.forEach(async ({ filename, suggestion }) => {
-    //     const firstChangedLineFromPatch =
-    //       await CommentOnPullRequestService.getFirstChangedLineFromPatch(file.patch!);
-    //     const lastCommitId = await this.getLastCommit();
-
-    //     await this.octokitApi.rest.pulls.createReviewComment({
-    //       owner,
-    //       repo,
-    //       pull_number: pullNumber,
-    //       line: firstChangedLineFromPatch,
-    //       path: filename,
-    //       body: `[ChatGPTReviewer]\n${suggestion}`,
-    //       commit_id: lastCommitId,
-    //     });
-    //   });
-
-    //   let requestCount = 1;
-    //   const intervalId = setInterval(async () => {
-    //     if (requestCount >= filesOutOfTokensRange.length) {
-    //       clearInterval(intervalId);
-    //       return;
-    //     }
-
-    //     const { filesOutOfTokensRange: newFilesOutOfTokensRange } = getPortionFilesByTokenRange(
-    //       MAX_TOKENS / 2,
-    //       filesOutOfTokensRange
-    //     );
-
-    //     await getOpenAiSuggestions({ data: this.concatPatches(newFilesOutOfTokensRange) });
-    //     requestCount += 1;
-    //   }, 60000); // Interval set to 1 minute (60,000 milliseconds)
-    // } catch (error) {
-    //   console.error('Error posting sequential data:', error);
-    // }
+      await this.createPullRequestComment(secondPortion);
+      requestCount += 1;
+    }, 60000);
   }
 }
 

@@ -18,6 +18,7 @@
     "comma-dangle": "off",
     "@typescript-eslint/comma-dangle": "off",
     "no-promise-executor-return": "off",
-    "class-methods-use-this": "off"
+    "class-methods-use-this": "off",
+    "no-console": "off"
   }
 }

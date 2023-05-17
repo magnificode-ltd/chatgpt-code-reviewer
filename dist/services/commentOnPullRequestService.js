@@ -89,35 +89,17 @@ class CommentOnPullRequestService {
             return commitsList[commitsList.length - 1].sha;
         });
     }
-    addCommentToPr() {
+    createPullRequestComment(files) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { files } = yield this.getBranchDiff();
-            if (!files) {
-                throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
-            }
-            const patchesList = [];
-            files
-                .filter(({ filename }) => ['package.json', 'package-lock.json'].includes(filename) === false)
-                .forEach(({ filename, patch }) => {
-                if (patch && (0, gpt_3_encoder_1.encode)(patch).length <= MAX_TOKENS / 2) {
-                    patchesList.push({
-                        filename,
-                        patch,
-                        tokensUsed: (0, gpt_3_encoder_1.encode)(patch).length,
-                    });
-                }
-            });
-            const { firstPortion } = (0, getPortionFilesByTokenRange_1.default)(MAX_TOKENS / 2, patchesList);
-            const getFirstPortionSuggestionsList = yield (0, getOpenAiSuggestions_1.default)((0, concatPatchesToSingleString_1.default)(firstPortion));
+            const getFirstPortionSuggestionsList = yield (0, getOpenAiSuggestions_1.default)((0, concatPatchesToSingleString_1.default)(files));
             const suggestionsList = (0, splitOpenAISuggestionsByFiles_1.default)(getFirstPortionSuggestionsList);
             const { owner, repo, pullNumber } = this.pullRequest;
             const lastCommitId = yield this.getLastCommit();
-            for (const file of firstPortion) {
+            for (const file of files) {
                 const firstChangedLineFromPatch = (0, getFirstChangedLineFromPatch_1.default)(file.patch);
-                const suggestionByFilename = suggestionsList.find(({ filename }) => filename === file.filename);
+                const suggestionByFilename = suggestionsList.find((suggestion) => suggestion.filename === file.filename);
                 if (suggestionByFilename) {
                     try {
-                        console.log('trying to create comment');
                         console.time(`createReviewComment for file: ${file.filename}`);
                         yield this.octokitApi.rest.pulls.createReviewComment({
                             owner,
@@ -137,42 +119,37 @@ class CommentOnPullRequestService {
                     }
                 }
             }
-            // try {
-            //   const suggestion = await getOpenAiSuggestions({
-            //     data: this.concatPatches(filesInTokenRange),
-            //   });
-            //   const { owner, repo, pullNumber } = this.pullRequest;
-            //   const suggestionsByFiles = splitOpenAISuggestionsByFiles(suggestion);
-            //   suggestionsByFiles.forEach(async ({ filename, suggestion }) => {
-            //     const firstChangedLineFromPatch =
-            //       await CommentOnPullRequestService.getFirstChangedLineFromPatch(file.patch!);
-            //     const lastCommitId = await this.getLastCommit();
-            //     await this.octokitApi.rest.pulls.createReviewComment({
-            //       owner,
-            //       repo,
-            //       pull_number: pullNumber,
-            //       line: firstChangedLineFromPatch,
-            //       path: filename,
-            //       body: `[ChatGPTReviewer]\n${suggestion}`,
-            //       commit_id: lastCommitId,
-            //     });
-            //   });
-            //   let requestCount = 1;
-            //   const intervalId = setInterval(async () => {
-            //     if (requestCount >= filesOutOfTokensRange.length) {
-            //       clearInterval(intervalId);
-            //       return;
-            //     }
-            //     const { filesOutOfTokensRange: newFilesOutOfTokensRange } = getPortionFilesByTokenRange(
-            //       MAX_TOKENS / 2,
-            //       filesOutOfTokensRange
-            //     );
-            //     await getOpenAiSuggestions({ data: this.concatPatches(newFilesOutOfTokensRange) });
-            //     requestCount += 1;
-            //   }, 60000); // Interval set to 1 minute (60,000 milliseconds)
-            // } catch (error) {
-            //   console.error('Error posting sequential data:', error);
-            // }
+        });
+    }
+    addCommentToPr() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { files } = yield this.getBranchDiff();
+            if (!files) {
+                throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
+            }
+            const patchesList = [];
+            files
+                .filter(({ filename }) => ['package.json', 'package-lock.json'].includes(filename) === false)
+                .forEach(({ filename, patch }) => {
+                if (patch && (0, gpt_3_encoder_1.encode)(patch).length <= MAX_TOKENS / 2) {
+                    patchesList.push({
+                        filename,
+                        patch,
+                        tokensUsed: (0, gpt_3_encoder_1.encode)(patch).length,
+                    });
+                }
+            });
+            const { firstPortion, secondPortion } = (0, getPortionFilesByTokenRange_1.default)(MAX_TOKENS / 2, patchesList);
+            yield this.createPullRequestComment(firstPortion);
+            let requestCount = 1;
+            const intervalId = setInterval(() => __awaiter(this, void 0, void 0, function* () {
+                if (requestCount >= secondPortion.length) {
+                    clearInterval(intervalId);
+                    return;
+                }
+                yield this.createPullRequestComment(secondPortion);
+                requestCount += 1;
+            }), 60000);
         });
     }
 }
