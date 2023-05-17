@@ -44,7 +44,7 @@ const extractFirstChangedLineFromPatch_1 = __importDefault(require("./utils/extr
 const getOpenAiSuggestions_1 = __importDefault(require("./utils/getOpenAiSuggestions"));
 const parseOpenAISuggestions_1 = __importDefault(require("./utils/parseOpenAISuggestions"));
 const MAX_TOKENS = 4000;
-const OPENAI_TIMEOUT = 60000;
+const OPENAI_TIMEOUT = 20000;
 class CommentOnPullRequestService {
     constructor() {
         var _a, _b, _c;

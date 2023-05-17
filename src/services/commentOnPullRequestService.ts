@@ -9,7 +9,7 @@ import getOpenAiSuggestions from './utils/getOpenAiSuggestions';
 import parseOpenAISuggestions from './utils/parseOpenAISuggestions';
 
 const MAX_TOKENS = 4000;
-const OPENAI_TIMEOUT = 60000;
+const OPENAI_TIMEOUT = 20000;
 
 class CommentOnPullRequestService {
   private readonly octokitApi: Octokit;
