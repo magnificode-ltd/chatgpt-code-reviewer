@@ -6,6 +6,7 @@ dist/*
 !dist/index.js
 !dist/sourcemap-register.js
 !dist/encoder.json
+!dist/vocab.bpe
 
 
 # TypeScript cache
