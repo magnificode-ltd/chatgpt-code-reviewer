@@ -137,17 +137,17 @@ class CommentOnPullRequestService {
                     });
                 }
             });
-            const { firstPortion, secondPortion } = (0, getPortionFilesByTokenRange_1.default)(MAX_TOKENS / 2, patchesList);
+            const { firstPortion } = (0, getPortionFilesByTokenRange_1.default)(MAX_TOKENS / 2, patchesList);
             yield this.createReviewComments(firstPortion);
-            let requestCount = 1;
-            const intervalId = setInterval(() => __awaiter(this, void 0, void 0, function* () {
-                if (requestCount >= secondPortion.length) {
-                    clearInterval(intervalId);
-                    return;
-                }
-                yield this.createReviewComments(secondPortion);
-                requestCount += 1;
-            }), 60000);
+            // let requestCount = 1;
+            // const intervalId = setInterval(async () => {
+            //   if (requestCount >= secondPortion.length) {
+            //     clearInterval(intervalId);
+            //     return;
+            //   }
+            //   await this.createReviewComments(secondPortion);
+            //   requestCount += 1;
+            // }, 60000);
         });
     }
 }

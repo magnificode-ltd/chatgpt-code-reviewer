@@ -122,24 +122,21 @@ class CommentOnPullRequestService {
       }
     });
 
-    const { firstPortion, secondPortion } = getPortionFilesByTokenRange(
-      MAX_TOKENS / 2,
-      patchesList
-    );
+    const { firstPortion } = getPortionFilesByTokenRange(MAX_TOKENS / 2, patchesList);
 
     await this.createReviewComments(firstPortion);
 
-    let requestCount = 1;
+    // let requestCount = 1;
 
-    const intervalId = setInterval(async () => {
-      if (requestCount >= secondPortion.length) {
-        clearInterval(intervalId);
-        return;
-      }
+    // const intervalId = setInterval(async () => {
+    //   if (requestCount >= secondPortion.length) {
+    //     clearInterval(intervalId);
+    //     return;
+    //   }
 
-      await this.createReviewComments(secondPortion);
-      requestCount += 1;
-    }, 60000);
+    //   await this.createReviewComments(secondPortion);
+    //   requestCount += 1;
+    // }, 60000);
   }
 }
 
