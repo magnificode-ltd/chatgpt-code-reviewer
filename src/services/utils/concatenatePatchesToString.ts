@@ -1,6 +1,6 @@
 import { FilenameWithPatch } from '../types';
 
-const concatPatchesToSingleString = (files: FilenameWithPatch[]) =>
+const concatenatePatchesToString = (files: FilenameWithPatch[]) =>
   files.map(({ filename, patch }) => `${filename}\n${patch}\n`).join('');
 
-export default concatPatchesToSingleString;
+export default concatenatePatchesToString;

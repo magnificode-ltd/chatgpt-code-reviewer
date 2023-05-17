@@ -38,11 +38,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const github_1 = require("@actions/github");
 const gpt_3_encoder_1 = require("gpt-3-encoder");
 const errorsConfig_1 = __importStar(require("../config/errorsConfig"));
-const concatPatchesToSingleString_1 = __importDefault(require("./utils/concatPatchesToSingleString"));
-const getFirstChangedLineFromPatch_1 = __importDefault(require("./utils/getFirstChangedLineFromPatch"));
+const concatenatePatchesToString_1 = __importDefault(require("./utils/concatenatePatchesToString"));
+const divideFilesByTokenRange_1 = __importDefault(require("./utils/divideFilesByTokenRange"));
+const extractFirstChangedLineFromPatch_1 = __importDefault(require("./utils/extractFirstChangedLineFromPatch"));
 const getOpenAiSuggestions_1 = __importDefault(require("./utils/getOpenAiSuggestions"));
-const getPortionFilesByTokenRange_1 = __importDefault(require("./utils/getPortionFilesByTokenRange"));
-const splitOpenAISuggestionsByFiles_1 = __importDefault(require("./utils/splitOpenAISuggestionsByFiles"));
+const parseOpenAISuggestions_1 = __importDefault(require("./utils/parseOpenAISuggestions"));
 const MAX_TOKENS = 4000;
 class CommentOnPullRequestService {
     constructor() {
@@ -91,12 +91,12 @@ class CommentOnPullRequestService {
     }
     createReviewComments(files) {
         return __awaiter(this, void 0, void 0, function* () {
-            const suggestionsListText = yield (0, getOpenAiSuggestions_1.default)((0, concatPatchesToSingleString_1.default)(files));
-            const suggestionsByFile = (0, splitOpenAISuggestionsByFiles_1.default)(suggestionsListText);
+            const suggestionsListText = yield (0, getOpenAiSuggestions_1.default)((0, concatenatePatchesToString_1.default)(files));
+            const suggestionsByFile = (0, parseOpenAISuggestions_1.default)(suggestionsListText);
             const { owner, repo, pullNumber } = this.pullRequest;
             const lastCommitId = yield this.getLastCommit();
             for (const file of files) {
-                const firstChangedLine = (0, getFirstChangedLineFromPatch_1.default)(file.patch);
+                const firstChangedLine = (0, extractFirstChangedLineFromPatch_1.default)(file.patch);
                 const suggestionForFile = suggestionsByFile.find((suggestion) => suggestion.filename === file.filename);
                 if (suggestionForFile) {
                     try {
@@ -107,7 +107,7 @@ class CommentOnPullRequestService {
                             pull_number: pullNumber,
                             line: firstChangedLine,
                             path: suggestionForFile.filename,
-                            body: `[ChatGPTReviewer]\n${suggestionForFile.suggestion}`,
+                            body: `[ChatGPTReviewer]\n${suggestionForFile.suggestionText}`,
                             commit_id: lastCommitId,
                         });
                         console.log('Comment was created successfully');
@@ -137,17 +137,17 @@ class CommentOnPullRequestService {
                     });
                 }
             });
-            const { firstPortion } = (0, getPortionFilesByTokenRange_1.default)(MAX_TOKENS / 2, patchesList);
-            yield this.createReviewComments(firstPortion);
-            // let requestCount = 1;
-            // const intervalId = setInterval(async () => {
-            //   if (requestCount >= secondPortion.length) {
-            //     clearInterval(intervalId);
-            //     return;
-            //   }
-            //   await this.createReviewComments(secondPortion);
-            //   requestCount += 1;
-            // }, 60000);
+            const { filesInFirstPortion, filesInSecondPortion } = (0, divideFilesByTokenRange_1.default)(MAX_TOKENS / 2, patchesList);
+            yield this.createReviewComments(filesInFirstPortion);
+            let requestCount = 1;
+            const intervalId = setInterval(() => __awaiter(this, void 0, void 0, function* () {
+                if (requestCount >= filesInSecondPortion.length) {
+                    clearInterval(intervalId);
+                    return;
+                }
+                yield this.createReviewComments(filesInSecondPortion);
+                requestCount += 1;
+            }), 60000);
         });
     }
 }

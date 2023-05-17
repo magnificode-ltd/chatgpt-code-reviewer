@@ -2,11 +2,11 @@ import { context, getOctokit } from '@actions/github';
 import { encode } from 'gpt-3-encoder';
 import errorsConfig, { ErrorMessage } from '../config/errorsConfig';
 import { FilenameWithPatch, Octokit, PullRequestInfo } from './types';
-import concatPatchesToSingleString from './utils/concatPatchesToSingleString';
-import getFirstChangedLineFromPatch from './utils/getFirstChangedLineFromPatch';
+import concatenatePatchesToString from './utils/concatenatePatchesToString';
+import divideFilesByTokenRange from './utils/divideFilesByTokenRange';
+import extractFirstChangedLineFromPatch from './utils/extractFirstChangedLineFromPatch';
 import getOpenAiSuggestions from './utils/getOpenAiSuggestions';
-import getPortionFilesByTokenRange from './utils/getPortionFilesByTokenRange';
-import splitOpenAISuggestionsByFiles from './utils/splitOpenAISuggestionsByFiles';
+import parseOpenAISuggestions from './utils/parseOpenAISuggestions';
 
 const MAX_TOKENS = 4000;
 
@@ -65,13 +65,13 @@ class CommentOnPullRequestService {
   }
 
   private async createReviewComments(files: FilenameWithPatch[]) {
-    const suggestionsListText = await getOpenAiSuggestions(concatPatchesToSingleString(files));
-    const suggestionsByFile = splitOpenAISuggestionsByFiles(suggestionsListText);
+    const suggestionsListText = await getOpenAiSuggestions(concatenatePatchesToString(files));
+    const suggestionsByFile = parseOpenAISuggestions(suggestionsListText);
     const { owner, repo, pullNumber } = this.pullRequest;
     const lastCommitId = await this.getLastCommit();
 
     for (const file of files) {
-      const firstChangedLine = getFirstChangedLineFromPatch(file.patch);
+      const firstChangedLine = extractFirstChangedLineFromPatch(file.patch);
       const suggestionForFile = suggestionsByFile.find(
         (suggestion) => suggestion.filename === file.filename
       );
@@ -86,7 +86,7 @@ class CommentOnPullRequestService {
             pull_number: pullNumber,
             line: firstChangedLine,
             path: suggestionForFile.filename,
-            body: `[ChatGPTReviewer]\n${suggestionForFile.suggestion}`,
+            body: `[ChatGPTReviewer]\n${suggestionForFile.suggestionText}`,
             commit_id: lastCommitId,
           });
 
@@ -119,21 +119,24 @@ class CommentOnPullRequestService {
       }
     });
 
-    const { firstPortion } = getPortionFilesByTokenRange(MAX_TOKENS / 2, patchesList);
+    const { filesInFirstPortion, filesInSecondPortion } = divideFilesByTokenRange(
+      MAX_TOKENS / 2,
+      patchesList
+    );
 
-    await this.createReviewComments(firstPortion);
+    await this.createReviewComments(filesInFirstPortion);
 
-    // let requestCount = 1;
+    let requestCount = 1;
 
-    // const intervalId = setInterval(async () => {
-    //   if (requestCount >= secondPortion.length) {
-    //     clearInterval(intervalId);
-    //     return;
-    //   }
+    const intervalId = setInterval(async () => {
+      if (requestCount >= filesInSecondPortion.length) {
+        clearInterval(intervalId);
+        return;
+      }
 
-    //   await this.createReviewComments(secondPortion);
-    //   requestCount += 1;
-    // }, 60000);
+      await this.createReviewComments(filesInSecondPortion);
+      requestCount += 1;
+    }, 60000);
   }
 }
 
