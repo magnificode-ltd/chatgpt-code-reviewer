@@ -1,4 +1,5 @@
 import { getInput } from '@actions/core';
+import fetch from 'node-fetch';
 import errorsConfig, { ErrorMessage } from '../../config/errorsConfig';
 import promptsConfig, { Prompt } from '../../config/promptsConfig';
 
@@ -28,7 +29,7 @@ const getOpenAiSuggestions = async (patch: string): Promise<any> => {
 
     if (!response.ok) throw new Error('Failed to post data.');
 
-    const responseJson = await response.json();
+    const responseJson = (await response.json()) as any;
     const openAiSuggestion = responseJson.data.choices.shift()?.message?.content || '';
 
     return openAiSuggestion;
