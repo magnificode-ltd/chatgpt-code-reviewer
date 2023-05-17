@@ -101,7 +101,8 @@ class CommentOnPullRequestService {
                 const suggestionForFile = suggestionsByFile.find((suggestion) => suggestion.filename === file.filename);
                 if (suggestionForFile) {
                     try {
-                        console.time(`createReviewComment for file: ${file.filename}`);
+                        const consoleTimeLabel = `Comment was created successfully for file: ${file.filename}`;
+                        console.time(consoleTimeLabel);
                         yield this.octokitApi.rest.pulls.createReviewComment({
                             owner,
                             repo,
@@ -111,8 +112,7 @@ class CommentOnPullRequestService {
                             body: `[ChatGPTReviewer]\n${suggestionForFile.suggestionText}`,
                             commit_id: lastCommitId,
                         });
-                        console.log('Comment was created successfully');
-                        console.timeEnd(`createReviewComment for file: ${file.filename}`);
+                        console.timeEnd(consoleTimeLabel);
                     }
                     catch (error) {
                         console.error('An error occurred while trying to add a comment', error);

@@ -79,7 +79,8 @@ class CommentOnPullRequestService {
 
       if (suggestionForFile) {
         try {
-          console.time(`createReviewComment for file: ${file.filename}`);
+          const consoleTimeLabel = `Comment was created successfully for file: ${file.filename}`;
+          console.time(consoleTimeLabel);
 
           await this.octokitApi.rest.pulls.createReviewComment({
             owner,
@@ -91,8 +92,7 @@ class CommentOnPullRequestService {
             commit_id: lastCommitId,
           });
 
-          console.log('Comment was created successfully');
-          console.timeEnd(`createReviewComment for file: ${file.filename}`);
+          console.timeEnd(consoleTimeLabel);
         } catch (error) {
           console.error('An error occurred while trying to add a comment', error);
           throw error;
