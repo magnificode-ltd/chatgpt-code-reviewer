@@ -64,7 +64,7 @@ class CommentOnPullRequestService {
     return commitsList[commitsList.length - 1].sha;
   }
 
-  private async createPullRequestComment(files: FilenameWithPatch[]) {
+  private async createReviewComments(files: FilenameWithPatch[]) {
     const getFirstPortionSuggestionsList = await getOpenAiSuggestions(
       concatPatchesToSingleString(files)
     );
@@ -112,24 +112,22 @@ class CommentOnPullRequestService {
 
     const patchesList: FilenameWithPatch[] = [];
 
-    files
-      .filter(({ filename }) => ['package.json', 'package-lock.json'].includes(filename) === false)
-      .forEach(({ filename, patch }) => {
-        if (patch && encode(patch).length <= MAX_TOKENS / 2) {
-          patchesList.push({
-            filename,
-            patch,
-            tokensUsed: encode(patch).length,
-          });
-        }
-      });
+    files.forEach(({ filename, patch }) => {
+      if (patch && encode(patch).length <= MAX_TOKENS / 2) {
+        patchesList.push({
+          filename,
+          patch,
+          tokensUsed: encode(patch).length,
+        });
+      }
+    });
 
     const { firstPortion, secondPortion } = getPortionFilesByTokenRange(
       MAX_TOKENS / 2,
       patchesList
     );
 
-    await this.createPullRequestComment(firstPortion);
+    await this.createReviewComments(firstPortion);
 
     let requestCount = 1;
 
@@ -139,7 +137,7 @@ class CommentOnPullRequestService {
         return;
       }
 
-      await this.createPullRequestComment(secondPortion);
+      await this.createReviewComments(secondPortion);
       requestCount += 1;
     }, 60000);
   }

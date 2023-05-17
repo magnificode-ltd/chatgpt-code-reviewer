@@ -6,15 +6,15 @@ const getPortionFilesByTokenRange = (tokensRange: number, files: FilenameWithPat
 
   let tokensUsed = 0;
 
-  files.forEach((file) => {
+  for (const file of files) {
     if (tokensUsed + file.tokensUsed <= tokensRange) {
       firstPortion.push(file);
       tokensUsed += file.tokensUsed;
     } else {
       secondPortion.push(file);
-      tokensUsed = file.tokensUsed;
+      break;
     }
-  });
+  }
 
   return {
     firstPortion,

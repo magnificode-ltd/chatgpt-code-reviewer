@@ -89,7 +89,7 @@ class CommentOnPullRequestService {
             return commitsList[commitsList.length - 1].sha;
         });
     }
-    createPullRequestComment(files) {
+    createReviewComments(files) {
         return __awaiter(this, void 0, void 0, function* () {
             const getFirstPortionSuggestionsList = yield (0, getOpenAiSuggestions_1.default)((0, concatPatchesToSingleString_1.default)(files));
             const suggestionsList = (0, splitOpenAISuggestionsByFiles_1.default)(getFirstPortionSuggestionsList);
@@ -128,9 +128,7 @@ class CommentOnPullRequestService {
                 throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
             }
             const patchesList = [];
-            files
-                .filter(({ filename }) => ['package.json', 'package-lock.json'].includes(filename) === false)
-                .forEach(({ filename, patch }) => {
+            files.forEach(({ filename, patch }) => {
                 if (patch && (0, gpt_3_encoder_1.encode)(patch).length <= MAX_TOKENS / 2) {
                     patchesList.push({
                         filename,
@@ -140,14 +138,14 @@ class CommentOnPullRequestService {
                 }
             });
             const { firstPortion, secondPortion } = (0, getPortionFilesByTokenRange_1.default)(MAX_TOKENS / 2, patchesList);
-            yield this.createPullRequestComment(firstPortion);
+            yield this.createReviewComments(firstPortion);
             let requestCount = 1;
             const intervalId = setInterval(() => __awaiter(this, void 0, void 0, function* () {
                 if (requestCount >= secondPortion.length) {
                     clearInterval(intervalId);
                     return;
                 }
-                yield this.createPullRequestComment(secondPortion);
+                yield this.createReviewComments(secondPortion);
                 requestCount += 1;
             }), 60000);
         });
