@@ -44,6 +44,7 @@ const extractFirstChangedLineFromPatch_1 = __importDefault(require("./utils/extr
 const getOpenAiSuggestions_1 = __importDefault(require("./utils/getOpenAiSuggestions"));
 const parseOpenAISuggestions_1 = __importDefault(require("./utils/parseOpenAISuggestions"));
 const MAX_TOKENS = 4000;
+const OPENAI_TIMEOUT = 60000;
 class CommentOnPullRequestService {
     constructor() {
         var _a, _b, _c;
@@ -137,17 +138,19 @@ class CommentOnPullRequestService {
                     });
                 }
             });
-            const { filesInFirstPortion, filesInSecondPortion } = (0, divideFilesByTokenRange_1.default)(MAX_TOKENS / 2, patchesList);
-            yield this.createReviewComments(filesInFirstPortion);
-            let requestCount = 1;
-            const intervalId = setInterval(() => __awaiter(this, void 0, void 0, function* () {
-                if (requestCount >= filesInSecondPortion.length) {
-                    clearInterval(intervalId);
-                    return;
-                }
-                yield this.createReviewComments(filesInSecondPortion);
-                requestCount += 1;
-            }), 60000);
+            const listOfFilesByTokenRange = (0, divideFilesByTokenRange_1.default)(MAX_TOKENS / 2, patchesList);
+            yield this.createReviewComments(listOfFilesByTokenRange[0]);
+            if (listOfFilesByTokenRange.length > 1) {
+                let requestCount = 1;
+                const intervalId = setInterval(() => __awaiter(this, void 0, void 0, function* () {
+                    if (requestCount >= listOfFilesByTokenRange.length) {
+                        clearInterval(intervalId);
+                        return;
+                    }
+                    yield this.createReviewComments(listOfFilesByTokenRange[requestCount]);
+                    requestCount += 1;
+                }), OPENAI_TIMEOUT);
+            }
         });
     }
 }

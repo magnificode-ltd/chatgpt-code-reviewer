@@ -9,6 +9,7 @@ import getOpenAiSuggestions from './utils/getOpenAiSuggestions';
 import parseOpenAISuggestions from './utils/parseOpenAISuggestions';
 
 const MAX_TOKENS = 4000;
+const OPENAI_TIMEOUT = 60000;
 
 class CommentOnPullRequestService {
   private readonly octokitApi: Octokit;
@@ -119,24 +120,23 @@ class CommentOnPullRequestService {
       }
     });
 
-    const { filesInFirstPortion, filesInSecondPortion } = divideFilesByTokenRange(
-      MAX_TOKENS / 2,
-      patchesList
-    );
+    const listOfFilesByTokenRange = divideFilesByTokenRange(MAX_TOKENS / 2, patchesList);
 
-    await this.createReviewComments(filesInFirstPortion);
+    await this.createReviewComments(listOfFilesByTokenRange[0]);
 
-    let requestCount = 1;
+    if (listOfFilesByTokenRange.length > 1) {
+      let requestCount = 1;
 
-    const intervalId = setInterval(async () => {
-      if (requestCount >= filesInSecondPortion.length) {
-        clearInterval(intervalId);
-        return;
-      }
+      const intervalId = setInterval(async () => {
+        if (requestCount >= listOfFilesByTokenRange.length) {
+          clearInterval(intervalId);
+          return;
+        }
 
-      await this.createReviewComments(filesInSecondPortion);
-      requestCount += 1;
-    }, 60000);
+        await this.createReviewComments(listOfFilesByTokenRange[requestCount]);
+        requestCount += 1;
+      }, OPENAI_TIMEOUT);
+    }
   }
 }
 

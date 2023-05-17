@@ -1,25 +1,27 @@
 import { FilenameWithPatch } from '../types';
 
 const divideFilesByTokenRange = (tokensRange: number, files: FilenameWithPatch[]) => {
-  const filesInFirstPortion: FilenameWithPatch[] = [];
-  const filesInSecondPortion: FilenameWithPatch[] = [];
+  const result: FilenameWithPatch[][] = [];
 
-  let totalTokensUsed = 0;
+  let currentArray: FilenameWithPatch[] = [];
+  let currentTokensUsed = 0;
 
   for (const file of files) {
-    if (totalTokensUsed + file.tokensUsed <= tokensRange) {
-      filesInFirstPortion.push(file);
-      totalTokensUsed += file.tokensUsed;
+    if (currentTokensUsed + file.tokensUsed <= tokensRange) {
+      currentArray.push(file);
+      currentTokensUsed += file.tokensUsed;
     } else {
-      filesInSecondPortion.push(file);
-      break;
+      result.push(currentArray);
+      currentArray = [file];
+      currentTokensUsed = file.tokensUsed;
     }
   }
 
-  return {
-    filesInFirstPortion,
-    filesInSecondPortion,
-  };
+  if (currentArray.length > 0) {
+    result.push(currentArray);
+  }
+
+  return result;
 };
 
 export default divideFilesByTokenRange;
