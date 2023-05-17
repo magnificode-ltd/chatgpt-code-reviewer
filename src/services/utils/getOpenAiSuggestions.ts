@@ -3,8 +3,7 @@ import fetch from 'node-fetch';
 import errorsConfig, { ErrorMessage } from '../../config/errorsConfig';
 import promptsConfig, { Prompt } from '../../config/promptsConfig';
 
-const OPENAI_MODEL = getInput('model');
-const { OPENAI_API_KEY } = process.env;
+const OPENAI_MODEL = getInput('model') || 'gpt-3.5-turbo';
 
 const getOpenAiSuggestions = async (patch: string): Promise<any> => {
   if (!patch) {
@@ -16,7 +15,7 @@ const getOpenAiSuggestions = async (patch: string): Promise<any> => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer  ${OPENAI_API_KEY}`,
+        Authorization: `Bearer  ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
         model: OPENAI_MODEL,

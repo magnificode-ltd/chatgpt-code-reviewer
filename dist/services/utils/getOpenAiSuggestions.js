@@ -39,8 +39,7 @@ const core_1 = require("@actions/core");
 const node_fetch_1 = __importDefault(require("node-fetch"));
 const errorsConfig_1 = __importStar(require("../../config/errorsConfig"));
 const promptsConfig_1 = __importStar(require("../../config/promptsConfig"));
-const OPENAI_MODEL = (0, core_1.getInput)('model');
-const { OPENAI_API_KEY } = process.env;
+const OPENAI_MODEL = (0, core_1.getInput)('model') || 'gpt-3.5-turbo';
 const getOpenAiSuggestions = (patch) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     if (!patch) {
@@ -51,7 +50,7 @@ const getOpenAiSuggestions = (patch) => __awaiter(void 0, void 0, void 0, functi
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer  ${OPENAI_API_KEY}`,
+                Authorization: `Bearer  ${process.env.OPENAI_API_KEY}`,
             },
             body: JSON.stringify({
                 model: OPENAI_MODEL,
