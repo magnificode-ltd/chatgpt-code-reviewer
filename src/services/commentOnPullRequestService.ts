@@ -1,7 +1,6 @@
 import { context, getOctokit } from '@actions/github';
 import { encode } from 'gpt-3-encoder';
 import errorsConfig, { ErrorMessage } from '../config/errorsConfig';
-import promptsConfig, { Prompt } from '../config/promptsConfig';
 import { FilenameWithPatch, Octokit, PullRequestInfo } from './types';
 import concatPatchesToSingleString from './utils/concatPatchesToSingleString';
 import getFirstChangedLineFromPatch from './utils/getFirstChangedLineFromPatch';
@@ -86,10 +85,7 @@ class CommentOnPullRequestService {
         }
       });
 
-    const { firstPortion } = getPortionFilesByTokenRange(
-      MAX_TOKENS - encode(promptsConfig[Prompt.SYSTEM_PROMPT]).length,
-      patchesList
-    );
+    const { firstPortion } = getPortionFilesByTokenRange(MAX_TOKENS / 1.4, patchesList);
 
     const getFirstPortionSuggestionsList = await getOpenAiSuggestions(
       concatPatchesToSingleString(firstPortion)

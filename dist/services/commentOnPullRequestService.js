@@ -38,7 +38,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const github_1 = require("@actions/github");
 const gpt_3_encoder_1 = require("gpt-3-encoder");
 const errorsConfig_1 = __importStar(require("../config/errorsConfig"));
-const promptsConfig_1 = __importStar(require("../config/promptsConfig"));
 const concatPatchesToSingleString_1 = __importDefault(require("./utils/concatPatchesToSingleString"));
 const getFirstChangedLineFromPatch_1 = __importDefault(require("./utils/getFirstChangedLineFromPatch"));
 const getOpenAiSuggestions_1 = __importDefault(require("./utils/getOpenAiSuggestions"));
@@ -108,7 +107,7 @@ class CommentOnPullRequestService {
                     });
                 }
             });
-            const { firstPortion } = (0, getPortionFilesByTokenRange_1.default)(MAX_TOKENS - (0, gpt_3_encoder_1.encode)(promptsConfig_1.default[promptsConfig_1.Prompt.SYSTEM_PROMPT]).length, patchesList);
+            const { firstPortion } = (0, getPortionFilesByTokenRange_1.default)(MAX_TOKENS / 1.4, patchesList);
             const getFirstPortionSuggestionsList = yield (0, getOpenAiSuggestions_1.default)((0, concatPatchesToSingleString_1.default)(firstPortion));
             const suggestionsList = (0, splitOpenAISuggestionsByFiles_1.default)(getFirstPortionSuggestionsList);
             const { owner, repo, pullNumber } = this.pullRequest;
