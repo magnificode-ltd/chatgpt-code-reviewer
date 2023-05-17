@@ -1,6 +1,10 @@
 # Node.js dependencies
 node_modules/
 
+# Buid files
+dist/*
+!dist/index.js
+
 # TypeScript cache
 *.tsbuildinfo
 
