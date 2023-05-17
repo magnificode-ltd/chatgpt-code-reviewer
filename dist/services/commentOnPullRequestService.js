@@ -39,6 +39,7 @@ const github_1 = require("@actions/github");
 const gpt_3_encoder_1 = require("gpt-3-encoder");
 const errorsConfig_1 = __importStar(require("../config/errorsConfig"));
 const concatPatchesToSingleString_1 = __importDefault(require("./utils/concatPatchesToSingleString"));
+const getFirstChangedLineFromPatch_1 = __importDefault(require("./utils/getFirstChangedLineFromPatch"));
 const getOpenAiSuggestions_1 = __importDefault(require("./utils/getOpenAiSuggestions"));
 const getPortionFilesByTokenRange_1 = __importDefault(require("./utils/getPortionFilesByTokenRange"));
 const splitOpenAISuggestionsByFiles_1 = __importDefault(require("./utils/splitOpenAISuggestionsByFiles"));
@@ -110,27 +111,26 @@ class CommentOnPullRequestService {
             const getFirstPortionSuggestionsList = yield (0, getOpenAiSuggestions_1.default)((0, concatPatchesToSingleString_1.default)(firstPortion));
             const suggestionsList = (0, splitOpenAISuggestionsByFiles_1.default)(getFirstPortionSuggestionsList);
             const { owner, repo, pullNumber } = this.pullRequest;
-            // firstPortion.forEach(async (file) => {
-            //   const lastCommitId = await this.getLastCommit();
-            //   const firstChangedLineFromPatch = getFirstChangedLineFromPatch(file.patch);
-            //   const suggestionByFilename = suggestionsList.find(
-            //     ({ filename }) => filename === file.filename
-            //   );
-            //   try {
-            //     await this.octokitApi.rest.pulls.createReviewComment({
-            //       owner,
-            //       repo,
-            //       pull_number: pullNumber,
-            //       line: firstChangedLineFromPatch,
-            //       path: suggestionByFilename?.filename,
-            //       body: `[ChatGPTReviewer]\n${suggestionByFilename?.suggestion}`,
-            //       commit_id: lastCommitId,
-            //     });
-            //   } catch (error) {
-            //     console.error('The error was occurred trying to add a comment', error);
-            //     throw error;
-            //   }
-            // });
+            firstPortion.forEach((file) => __awaiter(this, void 0, void 0, function* () {
+                const lastCommitId = yield this.getLastCommit();
+                const firstChangedLineFromPatch = (0, getFirstChangedLineFromPatch_1.default)(file.patch);
+                const suggestionByFilename = suggestionsList.find(({ filename }) => filename === file.filename);
+                try {
+                    yield this.octokitApi.rest.pulls.createReviewComment({
+                        owner,
+                        repo,
+                        pull_number: pullNumber,
+                        line: firstChangedLineFromPatch,
+                        path: suggestionByFilename === null || suggestionByFilename === void 0 ? void 0 : suggestionByFilename.filename,
+                        body: `[ChatGPTReviewer]\n${suggestionByFilename === null || suggestionByFilename === void 0 ? void 0 : suggestionByFilename.suggestion}`,
+                        commit_id: lastCommitId,
+                    });
+                }
+                catch (error) {
+                    console.error('The error was occurred trying to add a comment', error);
+                    throw error;
+                }
+            }));
             // try {
             //   const suggestion = await getOpenAiSuggestions({
             //     data: this.concatPatches(filesInTokenRange),
