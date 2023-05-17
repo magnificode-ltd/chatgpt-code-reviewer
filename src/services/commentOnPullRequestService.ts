@@ -24,6 +24,7 @@ class CommentOnPullRequestService {
     }
 
     if (!context.payload.pull_request) {
+      console.log(context.payload);
       throw new Error(errorsConfig[ErrorMessage.NO_PULLREQUEST_IN_CONTEXT]);
     }
 

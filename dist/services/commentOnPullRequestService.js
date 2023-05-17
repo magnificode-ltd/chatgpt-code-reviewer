@@ -54,6 +54,7 @@ class CommentOnPullRequestService {
             throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.MISSING_OPENAI_TOKEN]);
         }
         if (!github_1.context.payload.pull_request) {
+            console.log(github_1.context.payload);
             throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.NO_PULLREQUEST_IN_CONTEXT]);
         }
         this.octokitApi = (0, github_1.getOctokit)(process.env.GITHUB_TOKEN);
