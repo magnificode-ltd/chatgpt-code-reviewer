@@ -64,8 +64,7 @@ const getOpenAiSuggestions = (patch) => __awaiter(void 0, void 0, void 0, functi
         if (!response.ok)
             throw new Error('Failed to post data.');
         const responseJson = (yield response.json());
-        console.log({ responseJson });
-        const openAiSuggestion = ((_b = (_a = responseJson.data.choices.shift()) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || '';
+        const openAiSuggestion = ((_b = (_a = responseJson.choices.shift()) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || '';
         return openAiSuggestion;
     }
     catch (error) {

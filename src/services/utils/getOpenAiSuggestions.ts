@@ -31,9 +31,7 @@ const getOpenAiSuggestions = async (patch: string): Promise<any> => {
 
     const responseJson = (await response.json()) as any;
 
-    console.log({ responseJson });
-
-    const openAiSuggestion = responseJson.data.choices.shift()?.message?.content || '';
+    const openAiSuggestion = responseJson.choices.shift()?.message?.content || '';
 
     return openAiSuggestion;
   } catch (error) {
