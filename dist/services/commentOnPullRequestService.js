@@ -91,13 +91,15 @@ class CommentOnPullRequestService {
     }
     createReviewComments(files) {
         return __awaiter(this, void 0, void 0, function* () {
-            const getFirstPortionSuggestionsList = yield (0, getOpenAiSuggestions_1.default)((0, concatPatchesToSingleString_1.default)(files));
-            const suggestionsList = (0, splitOpenAISuggestionsByFiles_1.default)(getFirstPortionSuggestionsList);
+            const suggestionsList = yield (0, getOpenAiSuggestions_1.default)((0, concatPatchesToSingleString_1.default)(files));
+            const suggestionsListByFile = (0, splitOpenAISuggestionsByFiles_1.default)(suggestionsList);
             const { owner, repo, pullNumber } = this.pullRequest;
             const lastCommitId = yield this.getLastCommit();
             for (const file of files) {
                 const firstChangedLineFromPatch = (0, getFirstChangedLineFromPatch_1.default)(file.patch);
-                const suggestionByFilename = suggestionsList.find((suggestion) => suggestion.filename === file.filename);
+                const suggestionByFilename = suggestionsListByFile.find((suggestion) => suggestion.filename === file.filename);
+                console.log('createReviewComments');
+                console.log({ suggestionByFilename });
                 if (suggestionByFilename) {
                     try {
                         console.time(`createReviewComment for file: ${file.filename}`);

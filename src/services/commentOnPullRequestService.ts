@@ -65,19 +65,19 @@ class CommentOnPullRequestService {
   }
 
   private async createReviewComments(files: FilenameWithPatch[]) {
-    const getFirstPortionSuggestionsList = await getOpenAiSuggestions(
-      concatPatchesToSingleString(files)
-    );
-
-    const suggestionsList = splitOpenAISuggestionsByFiles(getFirstPortionSuggestionsList);
+    const suggestionsList = await getOpenAiSuggestions(concatPatchesToSingleString(files));
+    const suggestionsListByFile = splitOpenAISuggestionsByFiles(suggestionsList);
     const { owner, repo, pullNumber } = this.pullRequest;
     const lastCommitId = await this.getLastCommit();
 
     for (const file of files) {
       const firstChangedLineFromPatch = getFirstChangedLineFromPatch(file.patch);
-      const suggestionByFilename = suggestionsList.find(
+      const suggestionByFilename = suggestionsListByFile.find(
         (suggestion) => suggestion.filename === file.filename
       );
+
+      console.log('createReviewComments');
+      console.log({ suggestionByFilename });
 
       if (suggestionByFilename) {
         try {
