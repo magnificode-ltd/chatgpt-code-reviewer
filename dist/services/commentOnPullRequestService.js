@@ -99,7 +99,7 @@ class CommentOnPullRequestService {
             files
                 .filter(({ filename }) => ['package.json', 'package-lock.json'].includes(filename) === false)
                 .forEach(({ filename, patch }) => {
-                if (patch) {
+                if (patch && (0, gpt_3_encoder_1.encode)(patch).length <= MAX_TOKENS / 2) {
                     patchesList.push({
                         filename,
                         patch,
@@ -107,7 +107,7 @@ class CommentOnPullRequestService {
                     });
                 }
             });
-            const { firstPortion } = (0, getPortionFilesByTokenRange_1.default)(MAX_TOKENS / 3, patchesList);
+            const { firstPortion } = (0, getPortionFilesByTokenRange_1.default)(MAX_TOKENS / 2, patchesList);
             const getFirstPortionSuggestionsList = yield (0, getOpenAiSuggestions_1.default)((0, concatPatchesToSingleString_1.default)(firstPortion));
             const suggestionsList = (0, splitOpenAISuggestionsByFiles_1.default)(getFirstPortionSuggestionsList);
             const { owner, repo, pullNumber } = this.pullRequest;

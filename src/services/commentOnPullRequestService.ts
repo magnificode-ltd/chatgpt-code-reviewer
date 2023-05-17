@@ -76,7 +76,7 @@ class CommentOnPullRequestService {
     files
       .filter(({ filename }) => ['package.json', 'package-lock.json'].includes(filename) === false)
       .forEach(({ filename, patch }) => {
-        if (patch) {
+        if (patch && encode(patch).length <= MAX_TOKENS / 2) {
           patchesList.push({
             filename,
             patch,
@@ -85,7 +85,7 @@ class CommentOnPullRequestService {
         }
       });
 
-    const { firstPortion } = getPortionFilesByTokenRange(MAX_TOKENS / 3, patchesList);
+    const { firstPortion } = getPortionFilesByTokenRange(MAX_TOKENS / 2, patchesList);
 
     const getFirstPortionSuggestionsList = await getOpenAiSuggestions(
       concatPatchesToSingleString(firstPortion)
