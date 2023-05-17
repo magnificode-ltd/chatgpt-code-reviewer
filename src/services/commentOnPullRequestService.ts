@@ -94,30 +94,28 @@ class CommentOnPullRequestService {
     const suggestionsList = splitOpenAISuggestionsByFiles(getFirstPortionSuggestionsList);
     const { owner, repo, pullNumber } = this.pullRequest;
 
-    firstPortion.forEach(async (file) => {
-      const lastCommitId = await this.getLastCommit();
-      const firstChangedLineFromPatch = getFirstChangedLineFromPatch(file.patch);
-      const suggestionByFilename = suggestionsList.find(
-        ({ filename }) => filename === file.filename
-      );
+    // firstPortion.forEach(async (file) => {
+    //   const lastCommitId = await this.getLastCommit();
+    //   const firstChangedLineFromPatch = getFirstChangedLineFromPatch(file.patch);
+    //   const suggestionByFilename = suggestionsList.find(
+    //     ({ filename }) => filename === file.filename
+    //   );
 
-      try {
-        console.log(suggestionsList);
-
-        await this.octokitApi.rest.pulls.createReviewComment({
-          owner,
-          repo,
-          pull_number: pullNumber,
-          line: firstChangedLineFromPatch,
-          path: suggestionByFilename?.filename,
-          body: `[ChatGPTReviewer]\n${suggestionByFilename?.suggestion}`,
-          commit_id: lastCommitId,
-        });
-      } catch (error) {
-        console.error('The error was occurred trying to add a comment', error);
-        throw error;
-      }
-    });
+    //   try {
+    //     await this.octokitApi.rest.pulls.createReviewComment({
+    //       owner,
+    //       repo,
+    //       pull_number: pullNumber,
+    //       line: firstChangedLineFromPatch,
+    //       path: suggestionByFilename?.filename,
+    //       body: `[ChatGPTReviewer]\n${suggestionByFilename?.suggestion}`,
+    //       commit_id: lastCommitId,
+    //     });
+    //   } catch (error) {
+    //     console.error('The error was occurred trying to add a comment', error);
+    //     throw error;
+    //   }
+    // });
 
     // try {
     //   const suggestion = await getOpenAiSuggestions({
