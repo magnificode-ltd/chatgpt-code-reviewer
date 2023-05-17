@@ -129,15 +129,21 @@ class CommentOnPullRequestService {
                 throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
             }
             const patchesList = [];
-            files.forEach(({ filename, patch }) => {
-                if (patch && (0, gpt_3_encoder_1.encode)(patch).length <= MAX_TOKENS / 2) {
+            const filesTooLongToBeChecked = [];
+            for (const file of files) {
+                if (file.patch && (0, gpt_3_encoder_1.encode)(file.patch).length <= MAX_TOKENS / 2) {
                     patchesList.push({
-                        filename,
-                        patch,
-                        tokensUsed: (0, gpt_3_encoder_1.encode)(patch).length,
+                        filename: file.filename,
+                        patch: file.patch,
+                        tokensUsed: (0, gpt_3_encoder_1.encode)(file.patch).length,
                     });
                 }
-            });
+                else {
+                    filesTooLongToBeChecked.push(file.filename);
+                    break;
+                }
+            }
+            console.log(`The next files ${filesTooLongToBeChecked.join(', ')} is too long to be checked`);
             const listOfFilesByTokenRange = (0, divideFilesByTokenRange_1.default)(MAX_TOKENS / 2, patchesList);
             yield this.createReviewComments(listOfFilesByTokenRange[0]);
             if (listOfFilesByTokenRange.length > 1) {

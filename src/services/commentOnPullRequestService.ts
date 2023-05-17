@@ -109,16 +109,22 @@ class CommentOnPullRequestService {
     }
 
     const patchesList: FilenameWithPatch[] = [];
+    const filesTooLongToBeChecked: string[] = [];
 
-    files.forEach(({ filename, patch }) => {
-      if (patch && encode(patch).length <= MAX_TOKENS / 2) {
+    for (const file of files) {
+      if (file.patch && encode(file.patch).length <= MAX_TOKENS / 2) {
         patchesList.push({
-          filename,
-          patch,
-          tokensUsed: encode(patch).length,
+          filename: file.filename,
+          patch: file.patch,
+          tokensUsed: encode(file.patch).length,
         });
+      } else {
+        filesTooLongToBeChecked.push(file.filename);
+        break;
       }
-    });
+    }
+
+    console.log(`The next files ${filesTooLongToBeChecked.join(', ')} is too long to be checked`);
 
     const listOfFilesByTokenRange = divideFilesByTokenRange(MAX_TOKENS / 2, patchesList);
 
