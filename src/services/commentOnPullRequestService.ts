@@ -24,7 +24,6 @@ class CommentOnPullRequestService {
     }
 
     if (!context.payload.pull_request) {
-      console.log(context.payload);
       throw new Error(errorsConfig[ErrorMessage.NO_PULLREQUEST_IN_CONTEXT]);
     }
 
@@ -122,7 +121,6 @@ class CommentOnPullRequestService {
           console.error('The error was occurred trying to add a comment', error);
           throw error;
         }
-        break;
       }
     }
 
