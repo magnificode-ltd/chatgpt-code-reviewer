@@ -102,15 +102,7 @@ class CommentOnPullRequestService {
       );
 
       try {
-        console.log({
-          owner,
-          repo,
-          pull_number: pullNumber,
-          line: firstChangedLineFromPatch,
-          path: suggestionByFilename?.filename,
-          body: `[ChatGPTReviewer]\n${suggestionByFilename?.suggestion}`,
-          commit_id: lastCommitId,
-        });
+        console.log(suggestionsList);
 
         await this.octokitApi.rest.pulls.createReviewComment({
           owner,
