@@ -91,34 +91,30 @@ class CommentOnPullRequestService {
     }
     createReviewComments(files) {
         return __awaiter(this, void 0, void 0, function* () {
-            const suggestionsList = yield (0, getOpenAiSuggestions_1.default)((0, concatPatchesToSingleString_1.default)(files));
-            const suggestionsListByFile = (0, splitOpenAISuggestionsByFiles_1.default)(suggestionsList);
+            const suggestionsListText = yield (0, getOpenAiSuggestions_1.default)((0, concatPatchesToSingleString_1.default)(files));
+            const suggestionsByFile = (0, splitOpenAISuggestionsByFiles_1.default)(suggestionsListText);
             const { owner, repo, pullNumber } = this.pullRequest;
             const lastCommitId = yield this.getLastCommit();
             for (const file of files) {
-                const firstChangedLineFromPatch = (0, getFirstChangedLineFromPatch_1.default)(file.patch);
-                const suggestionByFilename = suggestionsListByFile.find((suggestion) => suggestion.filename === file.filename);
-                console.log('createReviewComments');
-                console.log({ suggestionByFilename });
-                console.log({ suggestionsList });
-                console.log({ suggestionsListByFile });
-                if (suggestionByFilename) {
+                const firstChangedLine = (0, getFirstChangedLineFromPatch_1.default)(file.patch);
+                const suggestionForFile = suggestionsByFile.find((suggestion) => suggestion.filename === file.filename);
+                if (suggestionForFile) {
                     try {
                         console.time(`createReviewComment for file: ${file.filename}`);
                         yield this.octokitApi.rest.pulls.createReviewComment({
                             owner,
                             repo,
                             pull_number: pullNumber,
-                            line: firstChangedLineFromPatch,
-                            path: suggestionByFilename.filename,
-                            body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
+                            line: firstChangedLine,
+                            path: suggestionForFile.filename,
+                            body: `[ChatGPTReviewer]\n${suggestionForFile.suggestion}`,
                             commit_id: lastCommitId,
                         });
-                        console.log('comment was created successfully');
+                        console.log('Comment was created successfully');
                         console.timeEnd(`createReviewComment for file: ${file.filename}`);
                     }
                     catch (error) {
-                        console.error('The error was occurred trying to add a comment', error);
+                        console.error('An error occurred while trying to add a comment', error);
                         throw error;
                     }
                 }

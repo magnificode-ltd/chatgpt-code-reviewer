@@ -65,23 +65,18 @@ class CommentOnPullRequestService {
   }
 
   private async createReviewComments(files: FilenameWithPatch[]) {
-    const suggestionsList = await getOpenAiSuggestions(concatPatchesToSingleString(files));
-    const suggestionsListByFile = splitOpenAISuggestionsByFiles(suggestionsList);
+    const suggestionsListText = await getOpenAiSuggestions(concatPatchesToSingleString(files));
+    const suggestionsByFile = splitOpenAISuggestionsByFiles(suggestionsListText);
     const { owner, repo, pullNumber } = this.pullRequest;
     const lastCommitId = await this.getLastCommit();
 
     for (const file of files) {
-      const firstChangedLineFromPatch = getFirstChangedLineFromPatch(file.patch);
-      const suggestionByFilename = suggestionsListByFile.find(
+      const firstChangedLine = getFirstChangedLineFromPatch(file.patch);
+      const suggestionForFile = suggestionsByFile.find(
         (suggestion) => suggestion.filename === file.filename
       );
 
-      console.log('createReviewComments');
-      console.log({ suggestionByFilename });
-      console.log({ suggestionsList });
-      console.log({ suggestionsListByFile });
-
-      if (suggestionByFilename) {
+      if (suggestionForFile) {
         try {
           console.time(`createReviewComment for file: ${file.filename}`);
 
@@ -89,16 +84,16 @@ class CommentOnPullRequestService {
             owner,
             repo,
             pull_number: pullNumber,
-            line: firstChangedLineFromPatch,
-            path: suggestionByFilename.filename,
-            body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
+            line: firstChangedLine,
+            path: suggestionForFile.filename,
+            body: `[ChatGPTReviewer]\n${suggestionForFile.suggestion}`,
             commit_id: lastCommitId,
           });
 
-          console.log('comment was created successfully');
+          console.log('Comment was created successfully');
           console.timeEnd(`createReviewComment for file: ${file.filename}`);
         } catch (error) {
-          console.error('The error was occurred trying to add a comment', error);
+          console.error('An error occurred while trying to add a comment', error);
           throw error;
         }
       }
