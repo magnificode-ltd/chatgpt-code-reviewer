@@ -112,10 +112,10 @@ class CommentOnPullRequestService {
             const suggestionsList = (0, splitOpenAISuggestionsByFiles_1.default)(getFirstPortionSuggestionsList);
             const { owner, repo, pullNumber } = this.pullRequest;
             const lastCommitId = yield this.getLastCommit();
-            firstPortion.forEach((file) => __awaiter(this, void 0, void 0, function* () {
+            firstPortion.forEach((file, index) => __awaiter(this, void 0, void 0, function* () {
                 const firstChangedLineFromPatch = (0, getFirstChangedLineFromPatch_1.default)(file.patch);
                 const suggestionByFilename = suggestionsList.find(({ filename }) => filename === file.filename);
-                if (suggestionByFilename) {
+                if (suggestionByFilename && index === 1) {
                     try {
                         console.log('trying to create comment');
                         console.log({
@@ -133,7 +133,8 @@ class CommentOnPullRequestService {
                             pull_number: pullNumber,
                             line: firstChangedLineFromPatch,
                             path: suggestionByFilename.filename,
-                            body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
+                            // body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
+                            body: 'test',
                             commit_id: lastCommitId,
                         });
                     }

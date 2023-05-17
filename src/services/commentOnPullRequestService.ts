@@ -95,13 +95,13 @@ class CommentOnPullRequestService {
     const { owner, repo, pullNumber } = this.pullRequest;
     const lastCommitId = await this.getLastCommit();
 
-    firstPortion.forEach(async (file) => {
+    firstPortion.forEach(async (file, index) => {
       const firstChangedLineFromPatch = getFirstChangedLineFromPatch(file.patch);
       const suggestionByFilename = suggestionsList.find(
         ({ filename }) => filename === file.filename
       );
 
-      if (suggestionByFilename) {
+      if (suggestionByFilename && index === 1) {
         try {
           console.log('trying to create comment');
           console.log({
@@ -120,7 +120,8 @@ class CommentOnPullRequestService {
             pull_number: pullNumber,
             line: firstChangedLineFromPatch,
             path: suggestionByFilename.filename,
-            body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
+            // body: `[ChatGPTReviewer]\n${suggestionByFilename.suggestion}`,
+            body: 'test',
             commit_id: lastCommitId,
           });
         } catch (error) {
