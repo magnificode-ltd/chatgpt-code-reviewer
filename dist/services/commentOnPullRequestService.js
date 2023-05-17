@@ -156,25 +156,60 @@ class CommentOnPullRequestService {
             });
         });
     }
+    getFilesWithSuggestions(text) {
+        const regex = /`([^`]+)`:\s*((?:\n\s+-[^`]+)+)/g;
+        const matches = [...text.matchAll(regex)];
+        const filenamesAndContents = matches.map((match) => {
+            const filename = match[1];
+            const content = match[2].trim().replace(/\n\s+-/g, '');
+            return { filename, content };
+        });
+        return filenamesAndContents;
+    }
+    getFilesInTokenRange(tokensRange, files) {
+        const filesInTokenRange = [];
+        const filesOutOfTokensRange = [];
+        let tokensUsed = 0;
+        files.forEach((file) => {
+            if (tokensUsed + file.tokensUsed <= tokensRange) {
+                filesInTokenRange.push(file);
+                tokensUsed += file.tokensUsed;
+            }
+            else {
+                filesOutOfTokensRange.push(file);
+                tokensUsed = file.tokensUsed;
+            }
+        });
+        return {
+            filesInTokenRange,
+            filesOutOfTokensRange,
+        };
+    }
     addCommentToPr() {
         return __awaiter(this, void 0, void 0, function* () {
             const { files } = yield this.getBranchDiff();
             if (!files) {
                 throw new Error(errorsConfig_1.default[errorsConfig_1.ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
             }
-            const patchData = files
+            const filePatchList = files
                 .filter(({ filename }) => filename.startsWith('src'))
-                .map(({ filename, patch }) => ({ filename, patch }));
-            let preparedData = JSON.stringify(patchData);
-            if (preparedData.length > MAX_TOKENS) {
-                preparedData = preparedData.slice(0, MAX_TOKENS);
-            }
+                .map(({ filename, patch }) => ({
+                filename,
+                patch,
+                tokensUsed: (0, gpt_3_encoder_1.encode)(patch || '').length,
+            }));
+            const { filesInTokenRange, filesOutOfTokensRange } = this.getFilesInTokenRange(MAX_TOKENS / 2, filePatchList);
             const response = yield (0, node_fetch_1.default)('https://api.openai.com/v1/chat/completions', {
                 body: JSON.stringify({
                     model: OPENAI_MODEL,
                     messages: [
                         { role: 'system', content: promptsConfig_1.default[promptsConfig_1.Prompt.SYSTEM_PROMPT] },
-                        { role: 'user', content: preparedData },
+                        {
+                            role: 'user',
+                            content: filesInTokenRange
+                                .map(({ filename, patch }) => `${filename}\n${patch}\n`)
+                                .join(''),
+                        },
                     ],
                 }),
                 method: 'POST',
@@ -185,24 +220,14 @@ class CommentOnPullRequestService {
             });
             const responseJson = yield response.json();
             console.log({ responseJson });
-            // const aiSuggestions = await this.getOpenAiSuggestionsByData(preparedData);
-            // const commitsList = await this.getCommitsList();
-            // const lastCommitId = commitsList[commitsList.length - 1].sha;
-            // let previousPromise = Promise.resolve<any>({});
-            // const commentPromisesList = files.map((file) => {
-            //   if (file.patch) {
-            //     previousPromise = this.createCommentByPatch({
-            //       patch: file.patch,
-            //       filename: file.filename,
-            //       lastCommitId,
-            //     });
-            //   }
-            //   return previousPromise;
-            // });
-            // commentPromisesList.forEach((promise) => {
-            //   previousPromise = previousPromise.then(() => promise).catch((error) => console.error(error));
-            // });
-            // await Promise.all(commentPromisesList);
+            /**
+             * 1. Check how many tokens we have per file
+             * 2. If there are more then 2k tokens was used - make a request
+             * 3. Check every patch in every file and push it to an array until max used tokens will be reached.
+             * 4. If one file will have more than 2k tokens, than what? ***
+             * 5. How to deal with a different models? There are models which allow more then 4k token ***
+             */
+            // if (jsonDataRequest.length > MAX_TOKENS) jsonDataRequest = jsonDataRequest.slice(0, MAX_TOKENS);
         });
     }
 }

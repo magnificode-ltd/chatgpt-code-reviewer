@@ -17,6 +17,7 @@
     "no-await-in-loop": "off",
     "comma-dangle": "off",
     "@typescript-eslint/comma-dangle": "off",
-    "no-promise-executor-return": "off"
+    "no-promise-executor-return": "off",
+    "class-methods-use-this": "off"
   }
 }

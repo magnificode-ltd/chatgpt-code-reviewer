@@ -11,6 +11,8 @@ const MAX_TOKENS = 4000;
 
 type Octokit = ReturnType<typeof getOctokit>;
 
+type FilenameWithPatch = { filename: string; patch?: string; tokensUsed: number };
+
 type PullRequestInfo = {
   owner: string;
   repo: string;
@@ -158,6 +160,42 @@ class CommentOnPullRequestService {
     });
   }
 
+  private getFilesWithSuggestions(text: string) {
+    const regex = /`([^`]+)`:\s*((?:\n\s+-[^`]+)+)/g;
+    const matches = [...text.matchAll(regex)];
+
+    const filenamesAndContents = matches.map((match) => {
+      const filename = match[1];
+      const content = match[2].trim().replace(/\n\s+-/g, '');
+
+      return { filename, content };
+    });
+
+    return filenamesAndContents;
+  }
+
+  private getFilesInTokenRange(tokensRange: number, files: FilenameWithPatch[]) {
+    const filesInTokenRange: FilenameWithPatch[] = [];
+    const filesOutOfTokensRange: FilenameWithPatch[] = [];
+
+    let tokensUsed = 0;
+
+    files.forEach((file) => {
+      if (tokensUsed + file.tokensUsed <= tokensRange) {
+        filesInTokenRange.push(file);
+        tokensUsed += file.tokensUsed;
+      } else {
+        filesOutOfTokensRange.push(file);
+        tokensUsed = file.tokensUsed;
+      }
+    });
+
+    return {
+      filesInTokenRange,
+      filesOutOfTokensRange,
+    };
+  }
+
   public async addCommentToPr() {
     const { files } = await this.getBranchDiff();
 
@@ -165,22 +203,30 @@ class CommentOnPullRequestService {
       throw new Error(errorsConfig[ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
     }
 
-    const patchData = files
+    const filePatchList = files
       .filter(({ filename }) => filename.startsWith('src'))
-      .map(({ filename, patch }) => ({ filename, patch }));
+      .map(({ filename, patch }) => ({
+        filename,
+        patch,
+        tokensUsed: encode(patch || '').length,
+      }));
 
-    let preparedData = JSON.stringify(patchData);
-
-    if (preparedData.length > MAX_TOKENS) {
-      preparedData = preparedData.slice(0, MAX_TOKENS);
-    }
+    const { filesInTokenRange, filesOutOfTokensRange } = this.getFilesInTokenRange(
+      MAX_TOKENS / 2,
+      filePatchList
+    );
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       body: JSON.stringify({
         model: OPENAI_MODEL,
         messages: [
           { role: 'system', content: promptsConfig[Prompt.SYSTEM_PROMPT] },
-          { role: 'user', content: preparedData },
+          {
+            role: 'user',
+            content: filesInTokenRange
+              .map(({ filename, patch }) => `${filename}\n${patch}\n`)
+              .join(''),
+          },
         ],
       }),
       method: 'POST',
@@ -194,29 +240,15 @@ class CommentOnPullRequestService {
 
     console.log({ responseJson });
 
-    // const aiSuggestions = await this.getOpenAiSuggestionsByData(preparedData);
+    /**
+     * 1. Check how many tokens we have per file
+     * 2. If there are more then 2k tokens was used - make a request
+     * 3. Check every patch in every file and push it to an array until max used tokens will be reached.
+     * 4. If one file will have more than 2k tokens, than what? ***
+     * 5. How to deal with a different models? There are models which allow more then 4k token ***
+     */
 
-    // const commitsList = await this.getCommitsList();
-    // const lastCommitId = commitsList[commitsList.length - 1].sha;
-
-    // let previousPromise = Promise.resolve<any>({});
-
-    // const commentPromisesList = files.map((file) => {
-    //   if (file.patch) {
-    //     previousPromise = this.createCommentByPatch({
-    //       patch: file.patch,
-    //       filename: file.filename,
-    //       lastCommitId,
-    //     });
-    //   }
-    //   return previousPromise;
-    // });
-
-    // commentPromisesList.forEach((promise) => {
-    //   previousPromise = previousPromise.then(() => promise).catch((error) => console.error(error));
-    // });
-
-    // await Promise.all(commentPromisesList);
+    // if (jsonDataRequest.length > MAX_TOKENS) jsonDataRequest = jsonDataRequest.slice(0, MAX_TOKENS);
   }
 }
 
