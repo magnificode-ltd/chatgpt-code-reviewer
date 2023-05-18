@@ -6,10 +6,13 @@ inputs:
     description: 'OpenAI model'
     default: 'gpt-3.5-turbo'
     required: false
+  max_tokens:
+    description: 'max TPM for OpenAI'
+    default: 4096
+    required: false
 runs:
   using: node16
   main: dist/index.js
 branding:
   icon: 'message-circle'
   color: 'yellow'
-

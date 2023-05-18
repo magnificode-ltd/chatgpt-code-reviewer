@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 import errorsConfig, { ErrorMessage } from '../../config/errorsConfig';
 import promptsConfig, { Prompt } from '../../config/promptsConfig';
 
-const OPENAI_MODEL = getInput('model') || 'gpt-3.5-turbo';
+const OPENAI_MODEL = getInput('model');
 
 const getOpenAiSuggestions = async (patch: string): Promise<any> => {
   if (!patch) {

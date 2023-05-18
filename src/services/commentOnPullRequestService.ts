@@ -1,3 +1,4 @@
+import { getInput } from '@actions/core';
 import { context, getOctokit } from '@actions/github';
 import { encode } from 'gpt-3-encoder';
 import errorsConfig, { ErrorMessage } from '../config/errorsConfig';
@@ -8,7 +9,7 @@ import extractFirstChangedLineFromPatch from './utils/extractFirstChangedLineFro
 import getOpenAiSuggestions from './utils/getOpenAiSuggestions';
 import parseOpenAISuggestions from './utils/parseOpenAISuggestions';
 
-const MAX_TOKENS = 4000;
+const MAX_TOKENS = parseInt(getInput('max_tokens'), 10);
 const OPENAI_TIMEOUT = 20000;
 
 class CommentOnPullRequestService {
