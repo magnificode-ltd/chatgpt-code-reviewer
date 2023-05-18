@@ -1,24 +1,18 @@
-import { getInput } from '@actions/core';
 import { context, getOctokit } from '@actions/github';
-import { Configuration, OpenAIApi } from 'openai';
+import { encode } from 'gpt-3-encoder';
 import errorsConfig, { ErrorMessage } from '../config/errorsConfig';
-import promptsConfig, { Prompt } from '../config/promptsConfig';
+import { FilenameWithPatch, Octokit, PullRequestInfo } from './types';
+import concatenatePatchesToString from './utils/concatenatePatchesToString';
+import divideFilesByTokenRange from './utils/divideFilesByTokenRange';
+import extractFirstChangedLineFromPatch from './utils/extractFirstChangedLineFromPatch';
+import getOpenAiSuggestions from './utils/getOpenAiSuggestions';
+import parseOpenAISuggestions from './utils/parseOpenAISuggestions';
 
-const OPENAI_MODEL = getInput('model');
-
-type Octokit = ReturnType<typeof getOctokit>;
-
-type PullRequestInfo = {
-  owner: string;
-  repo: string;
-  pullHeadRef: string;
-  pullBaseRef: string;
-  pullNumber: number;
-};
+const MAX_TOKENS = 4000;
+const OPENAI_TIMEOUT = 20000;
 
 class CommentOnPullRequestService {
   private readonly octokitApi: Octokit;
-  private readonly openAiApi: OpenAIApi;
   private readonly pullRequest: PullRequestInfo;
 
   constructor() {
@@ -35,7 +29,6 @@ class CommentOnPullRequestService {
     }
 
     this.octokitApi = getOctokit(process.env.GITHUB_TOKEN);
-    this.openAiApi = new OpenAIApi(new Configuration({ apiKey: process.env.OPENAI_API_KEY }));
 
     this.pullRequest = {
       owner: context.repo.owner,
@@ -59,7 +52,7 @@ class CommentOnPullRequestService {
     return branchDiff;
   }
 
-  private async getCommitsList() {
+  private async getLastCommit() {
     const { owner, repo, pullNumber } = this.pullRequest;
 
     const { data: commitsList } = await this.octokitApi.rest.pulls.listCommits({
@@ -69,41 +62,43 @@ class CommentOnPullRequestService {
       pull_number: pullNumber,
     });
 
-    return commitsList;
+    return commitsList[commitsList.length - 1].sha;
   }
 
-  private async getOpenAiSuggestions(patch?: string) {
-    if (!patch) {
-      throw new Error(errorsConfig[ErrorMessage.MISSING_PATCH_FOR_OPENAI_SUGGESTION]);
+  private async createReviewComments(files: FilenameWithPatch[]) {
+    const suggestionsListText = await getOpenAiSuggestions(concatenatePatchesToString(files));
+    const suggestionsByFile = parseOpenAISuggestions(suggestionsListText);
+    const { owner, repo, pullNumber } = this.pullRequest;
+    const lastCommitId = await this.getLastCommit();
+
+    for (const file of files) {
+      const firstChangedLine = extractFirstChangedLineFromPatch(file.patch);
+      const suggestionForFile = suggestionsByFile.find(
+        (suggestion) => suggestion.filename === file.filename
+      );
+
+      if (suggestionForFile) {
+        try {
+          const consoleTimeLabel = `Comment was created successfully for file: ${file.filename}`;
+          console.time(consoleTimeLabel);
+
+          await this.octokitApi.rest.pulls.createReviewComment({
+            owner,
+            repo,
+            pull_number: pullNumber,
+            line: firstChangedLine,
+            path: suggestionForFile.filename,
+            body: `[ChatGPTReviewer]\n${suggestionForFile.suggestionText}`,
+            commit_id: lastCommitId,
+          });
+
+          console.timeEnd(consoleTimeLabel);
+        } catch (error) {
+          console.error('An error occurred while trying to add a comment', error);
+          throw error;
+        }
+      }
     }
-
-    const prompt = `
-      ${promptsConfig[Prompt.Check_Patch]}\n
-      Patch:\n\n"${patch}"
-    `;
-
-    const openAIResult = await this.openAiApi.createChatCompletion({
-      model: OPENAI_MODEL,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const openAiSuggestion = openAIResult.data.choices.shift()?.message?.content || '';
-
-    return openAiSuggestion;
-  }
-
-  static async getFirstChangedLineFromPatch(patch: string) {
-    const lineHeaderRegExp = /^@@ -\d+,\d+ \+(\d+),(\d+) @@/;
-    const lines = patch.split('\n');
-    const lineHeaderMatch = lines[0].match(lineHeaderRegExp);
-
-    let lineNumber = 1;
-
-    if (lineHeaderMatch) {
-      lineNumber = parseInt(lineHeaderMatch[1], 10);
-    }
-
-    return lineNumber;
   }
 
   public async addCommentToPr() {
@@ -113,29 +108,45 @@ class CommentOnPullRequestService {
       throw new Error(errorsConfig[ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
     }
 
-    const commentPromises = files.map(async (file) => {
-      if (file.patch) {
-        const openAiSuggestions = await this.getOpenAiSuggestions(file.patch);
-        const commitsList = await this.getCommitsList();
+    const patchesList: FilenameWithPatch[] = [];
+    const filesTooLongToBeChecked: string[] = [];
 
-        const { owner, repo, pullNumber } = this.pullRequest;
-
-        const firstChangedLineFromPatch =
-          await CommentOnPullRequestService.getFirstChangedLineFromPatch(file.patch);
-
-        await this.octokitApi.rest.pulls.createReviewComment({
-          owner,
-          repo,
-          pull_number: pullNumber,
-          line: firstChangedLineFromPatch,
-          path: file.filename,
-          body: `[ChatGPTReviewer]\n${openAiSuggestions}`,
-          commit_id: commitsList[commitsList.length - 1].sha,
+    for (const file of files) {
+      if (file.patch && encode(file.patch).length <= MAX_TOKENS / 2) {
+        patchesList.push({
+          filename: file.filename,
+          patch: file.patch,
+          tokensUsed: encode(file.patch).length,
         });
+      } else {
+        filesTooLongToBeChecked.push(file.filename);
+        break;
       }
-    });
+    }
 
-    await Promise.all(commentPromises);
+    if (filesTooLongToBeChecked.length > 0) {
+      console.log(
+        `The changes for ${filesTooLongToBeChecked.join(', ')} is too long to be checked.`
+      );
+    }
+
+    const listOfFilesByTokenRange = divideFilesByTokenRange(MAX_TOKENS / 2, patchesList);
+
+    await this.createReviewComments(listOfFilesByTokenRange[0]);
+
+    if (listOfFilesByTokenRange.length > 1) {
+      let requestCount = 1;
+
+      const intervalId = setInterval(async () => {
+        if (requestCount >= listOfFilesByTokenRange.length) {
+          clearInterval(intervalId);
+          return;
+        }
+
+        await this.createReviewComments(listOfFilesByTokenRange[requestCount]);
+        requestCount += 1;
+      }, OPENAI_TIMEOUT);
+    }
   }
 }
 
