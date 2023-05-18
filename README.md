@@ -27,14 +27,14 @@ To use this github action, you will need to have a GitHub account and an OpenAI 
        runs-on: ubuntu-latest
        steps:
          - name: ChatGPT Review
-           uses: magnificode-ltd/chatgpt-code-reviewer@v0.0.7
+           uses: magnificode-ltd/chatgpt-code-reviewer@v0.0.8
            with:
              model: gpt-3.5-turbo
            env:
              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
              OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
    ```
-Note that `secrets.GITHUB_TOKEN` is provided to you automatically by GitHub.
+   Note that `secrets.GITHUB_TOKEN` is provided to you automatically by GitHub.
 
 ---
 
