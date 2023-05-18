@@ -120,7 +120,6 @@ class CommentOnPullRequestService {
         });
       } else {
         filesTooLongToBeChecked.push(file.filename);
-        break;
       }
     }
 
