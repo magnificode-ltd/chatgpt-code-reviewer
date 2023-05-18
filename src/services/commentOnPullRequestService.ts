@@ -112,7 +112,7 @@ class CommentOnPullRequestService {
     const filesTooLongToBeChecked: string[] = [];
 
     for (const file of files) {
-      if (file.patch && encode(file.patch).length <= MAX_TOKENS / 2) {
+      if (file.patch && encode(file.patch).length <= MAX_TOKENS) {
         patchesList.push({
           filename: file.filename,
           patch: file.patch,
@@ -130,7 +130,7 @@ class CommentOnPullRequestService {
       );
     }
 
-    const listOfFilesByTokenRange = divideFilesByTokenRange(MAX_TOKENS / 2, patchesList);
+    const listOfFilesByTokenRange = divideFilesByTokenRange(MAX_TOKENS, patchesList);
 
     await this.createReviewComments(listOfFilesByTokenRange[0]);
 
