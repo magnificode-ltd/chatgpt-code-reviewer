@@ -37,7 +37,7 @@ To use this github action, you will need to have a GitHub account and an OpenAI 
              OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
    ```
 
-   Note that `secrets.GITHUB_TOKEN` is provided to you automatically by GitHub.
+   ### Configuration
 
    | Parameter      | Description                                                               | Required | Default Value |
    | -------------- | ------------------------------------------------------------------------- | -------- | ------------- |
