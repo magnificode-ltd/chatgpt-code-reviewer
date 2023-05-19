@@ -10,7 +10,7 @@ import extractFirstChangedLineFromPatch from './utils/extractFirstChangedLineFro
 import getOpenAiSuggestions from './utils/getOpenAiSuggestions';
 import parseOpenAISuggestions from './utils/parseOpenAISuggestions';
 
-const MAX_TOKENS = parseInt(getInput('max_tokens'), 10);
+const MAX_TOKENS = parseInt(getInput('max_tokens'), 10) || 4096;
 const OPENAI_TIMEOUT = 20000;
 
 class CommentOnPullRequestService {
