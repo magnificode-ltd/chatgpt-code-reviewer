@@ -1,5 +1,6 @@
 import { getInput } from '@actions/core';
 import fetch from 'node-fetch';
+
 import errorsConfig, { ErrorMessage } from '../../config/errorsConfig';
 import promptsConfig, { Prompt } from '../../config/promptsConfig';
 
@@ -7,7 +8,9 @@ const OPENAI_MODEL = getInput('model');
 
 const getOpenAiSuggestions = async (patch: string): Promise<any> => {
   if (!patch) {
-    throw new Error(errorsConfig[ErrorMessage.MISSING_PATCH_FOR_OPENAI_SUGGESTION]);
+    throw new Error(
+      errorsConfig[ErrorMessage.MISSING_PATCH_FOR_OPENAI_SUGGESTION],
+    );
   }
 
   try {
@@ -30,7 +33,8 @@ const getOpenAiSuggestions = async (patch: string): Promise<any> => {
 
     const responseJson = (await response.json()) as any;
 
-    const openAiSuggestion = responseJson.choices.shift()?.message?.content || '';
+    const openAiSuggestion =
+      responseJson.choices.shift()?.message?.content || '';
 
     return openAiSuggestion;
   } catch (error) {

@@ -7,7 +7,8 @@ enum ErrorMessage {
 }
 
 const errorsConfig: { [key in ErrorMessage]: string } = {
-  [ErrorMessage.MISSING_GITHUB_TOKEN]: 'A GitHub token must be provided to use the Octokit API.',
+  [ErrorMessage.MISSING_GITHUB_TOKEN]:
+    'A GitHub token must be provided to use the Octokit API.',
   [ErrorMessage.MISSING_OPENAI_TOKEN]:
     'An OpenAI API token must be provided to use the OpenAI API. Make sure you have add a token with a name OPENAI_API_KEY in https://github.com/{user}/{repository}/settings/secrets/actions',
   [ErrorMessage.NO_PULLREQUEST_IN_CONTEXT]:

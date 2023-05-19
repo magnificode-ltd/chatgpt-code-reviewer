@@ -1,6 +1,7 @@
 import { getInput } from '@actions/core';
 import { context, getOctokit } from '@actions/github';
 import { encode } from 'gpt-3-encoder';
+
 import errorsConfig, { ErrorMessage } from '../config/errorsConfig';
 import { FilenameWithPatch, Octokit, PullRequestInfo } from './types';
 import concatenatePatchesToString from './utils/concatenatePatchesToString';
@@ -43,12 +44,13 @@ class CommentOnPullRequestService {
   private async getBranchDiff() {
     const { owner, repo, pullBaseRef, pullHeadRef } = this.pullRequest;
 
-    const { data: branchDiff } = await this.octokitApi.rest.repos.compareCommits({
-      owner,
-      repo,
-      base: pullBaseRef,
-      head: pullHeadRef,
-    });
+    const { data: branchDiff } =
+      await this.octokitApi.rest.repos.compareCommits({
+        owner,
+        repo,
+        base: pullBaseRef,
+        head: pullHeadRef,
+      });
 
     return branchDiff;
   }
@@ -67,7 +69,9 @@ class CommentOnPullRequestService {
   }
 
   private async createReviewComments(files: FilenameWithPatch[]) {
-    const suggestionsListText = await getOpenAiSuggestions(concatenatePatchesToString(files));
+    const suggestionsListText = await getOpenAiSuggestions(
+      concatenatePatchesToString(files),
+    );
     const suggestionsByFile = parseOpenAISuggestions(suggestionsListText);
     const { owner, repo, pullNumber } = this.pullRequest;
     const lastCommitId = await this.getLastCommit();
@@ -75,7 +79,7 @@ class CommentOnPullRequestService {
     for (const file of files) {
       const firstChangedLine = extractFirstChangedLineFromPatch(file.patch);
       const suggestionForFile = suggestionsByFile.find(
-        (suggestion) => suggestion.filename === file.filename
+        (suggestion) => suggestion.filename === file.filename,
       );
 
       if (suggestionForFile) {
@@ -95,7 +99,10 @@ class CommentOnPullRequestService {
 
           console.timeEnd(consoleTimeLabel);
         } catch (error) {
-          console.error('An error occurred while trying to add a comment', error);
+          console.error(
+            'An error occurred while trying to add a comment',
+            error,
+          );
           throw error;
         }
       }
@@ -106,7 +113,9 @@ class CommentOnPullRequestService {
     const { files } = await this.getBranchDiff();
 
     if (!files) {
-      throw new Error(errorsConfig[ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST]);
+      throw new Error(
+        errorsConfig[ErrorMessage.NO_CHANGED_FILES_IN_PULL_REQUEST],
+      );
     }
 
     const patchesList: FilenameWithPatch[] = [];
@@ -126,11 +135,16 @@ class CommentOnPullRequestService {
 
     if (filesTooLongToBeChecked.length > 0) {
       console.log(
-        `The changes for ${filesTooLongToBeChecked.join(', ')} is too long to be checked.`
+        `The changes for ${filesTooLongToBeChecked.join(
+          ', ',
+        )} is too long to be checked.`,
       );
     }
 
-    const listOfFilesByTokenRange = divideFilesByTokenRange(MAX_TOKENS / 2, patchesList);
+    const listOfFilesByTokenRange = divideFilesByTokenRange(
+      MAX_TOKENS / 2,
+      patchesList,
+    );
 
     await this.createReviewComments(listOfFilesByTokenRange[0]);
 

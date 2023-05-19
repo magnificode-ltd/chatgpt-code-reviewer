@@ -1,6 +1,9 @@
 import { FilenameWithPatch } from '../types';
 
-const divideFilesByTokenRange = (tokensRange: number, files: FilenameWithPatch[]) => {
+const divideFilesByTokenRange = (
+  tokensRange: number,
+  files: FilenameWithPatch[],
+) => {
   const result: FilenameWithPatch[][] = [];
 
   let currentArray: FilenameWithPatch[] = [];
