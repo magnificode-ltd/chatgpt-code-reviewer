@@ -2,6 +2,14 @@
 
 GitHub action that adds ChatGPT code review comments to pull requests. This service uses the GitHub REST API and the OpenAI API to generate suggestions for pull request changes.
 
+Example:
+<img src='docs/images/chatgpt-review-comment.png' alt='ChatGPT Review Example Comment'/>
+
+### A few notes on what to expect
+
+* This is not intended to replace an actual code review done by a developer. It's meant to spot things humans could miss, provide instantaneous feedback and fix immediately, before a peer has had time to review.
+* While in many of the cases we've seen the comments are great, it isn't always right, so be critical and decide for yourself what needs fixing and what does not.
+
 ### Before you start
 
 By using this repository you acknowledge and approve of the fact that:
@@ -37,14 +45,18 @@ To use this github action, you will need to have a GitHub account and an OpenAI 
              OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
    ```
 
-   ### Configuration
+   ### Parameters
 
    | Parameter      | Description                                                               | Required | Default Value |
    | -------------- | ------------------------------------------------------------------------- | -------- | ------------- |
-   | GITHUB_TOKEN   | provided to you automatically by GitHub, used to send out review comments | true     | ""            |
-   | OPENAI_API_KEY | API key used to invoke OpenAI                                             | true     | ""            |
    | model          | OpenAI model                                                              | false    | gpt-3.5-turbo |
    | max_tokens     | OpenAI TPM                                                                | false    | 4096          |
+
+   ### Environment Variables
+   | Variable      | Description                                                               | Required | Default Value |
+   | -------------- | ------------------------------------------------------------------------- | -------- | ------------- |
+   | GITHUB_TOKEN   | provided to you automatically by GitHub, used to send out review comments | true     | ""            |
+   | OPENAI_API_KEY | API key used to invoke OpenAI                                             | true     | ""            |
 
 ---
 
